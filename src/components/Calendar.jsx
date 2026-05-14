@@ -1,18 +1,21 @@
 import { useState } from 'react';
 import {
-  CalendarDays, ChevronLeft, ChevronRight, X, Clock, User, Clapperboard, Filter,
+  CalendarDays, ChevronLeft, ChevronRight, X, Clock, User, Clapperboard, Filter, Plus,
 } from 'lucide-react';
-import { uid, SERVICE_TYPES } from '../data';
+import { SERVICE_TYPES } from '../data';
+import { useToast } from './Toast';
 
-export default function Calendar({ clients, sessions, setSessions }) {
+export default function Calendar({ clients, sessions, addSession, updateSession, deleteSession }) {
+  const toast = useToast();
   const today = new Date();
   const [viewDate, setViewDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
   const [selectedDay, setSelectedDay] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [filterClient, setFilterClient] = useState('');
   const [editSession, setEditSession] = useState(null);
+  const [saving, setSaving] = useState(false);
 
-  const emptyForm = { clientId: '', time: '09:00', service: SERVICE_TYPES[0], status: 'Pendente' };
+  const emptyForm = { client_id: '', time_start: '09:00', time_end: '10:00', service: SERVICE_TYPES[0], status: 'Pendente' };
   const [form, setForm] = useState(emptyForm);
 
   const year = viewDate.getFullYear();
@@ -36,7 +39,7 @@ export default function Calendar({ clients, sessions, setSessions }) {
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
   const filtered = filterClient
-    ? sessions.filter(s => s.clientId === filterClient)
+    ? sessions.filter(s => s.client_id === filterClient)
     : sessions;
 
   const getClientName = (id) => clients.find(c => c.id === id)?.name || '—';
@@ -46,33 +49,81 @@ export default function Calendar({ clients, sessions, setSessions }) {
     setSelectedDay(day);
     setShowModal(true);
     setEditSession(null);
-    setForm({ ...emptyForm, clientId: clients[0]?.id || '' });
+    setForm({ ...emptyForm, client_id: clients[0]?.id || '' });
   };
 
-  const saveSession = () => {
-    if (!form.clientId) return;
+  const formatTimeRange = (session) => {
+    const start = session.time_start || session.time || '—';
+    const end = session.time_end;
+    if (end) return `${start} — ${end}`;
+    return start;
+  };
+
+  const handleSaveSession = async () => {
+    if (!form.client_id) return;
+    setSaving(true);
     const dateStr = getDateStr(selectedDay);
+
     if (editSession) {
-      setSessions(prev => prev.map(s => s.id === editSession.id ? { ...s, ...form, date: dateStr } : s));
+      const result = await updateSession(editSession.id, {
+        client_id: form.client_id,
+        time_start: form.time_start,
+        time_end: form.time_end,
+        service: form.service,
+        status: form.status,
+        date: dateStr,
+      });
+      result ? toast.success('Gravação atualizada') : toast.error('Erro ao atualizar');
     } else {
-      setSessions(prev => [...prev, { id: uid(), ...form, date: dateStr }]);
+      const result = await addSession({
+        client_id: form.client_id,
+        time_start: form.time_start,
+        time_end: form.time_end,
+        service: form.service,
+        status: form.status,
+        date: dateStr,
+      });
+      result ? toast.success('Gravação agendada') : toast.error('Erro ao agendar');
     }
-    setShowModal(false);
+
+    setSaving(false);
     setEditSession(null);
+    setForm({ ...emptyForm, client_id: clients[0]?.id || '' });
+    // Keep modal open so user can add more sessions to same day
   };
 
-  const deleteSession = (id) => {
-    setSessions(prev => prev.filter(s => s.id !== id));
+  const handleDeleteSession = async (id) => {
+    const result = await deleteSession(id);
+    result ? toast.success('Gravação removida') : toast.error('Erro ao remover');
   };
 
   const editSess = (s) => {
     setEditSession(s);
-    setForm({ clientId: s.clientId, time: s.time, service: s.service, status: s.status });
+    setForm({
+      client_id: s.client_id,
+      time_start: s.time_start || s.time || '09:00',
+      time_end: s.time_end || '',
+      service: s.service,
+      status: s.status,
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditSession(null);
+    setForm({ ...emptyForm, client_id: clients[0]?.id || '' });
   };
 
   const dayEvents = selectedDay
     ? filtered.filter(s => s.date === getDateStr(selectedDay))
+        .sort((a, b) => (a.time_start || a.time || '').localeCompare(b.time_start || b.time || ''))
     : [];
+
+  // Count unique clients per day
+  const getDayClientCount = (dateStr) => {
+    const daySessionsList = filtered.filter(s => s.date === dateStr);
+    const uniqueClients = new Set(daySessionsList.map(s => s.client_id));
+    return uniqueClients.size;
+  };
 
   return (
     <div className="fade-in">
@@ -114,16 +165,24 @@ export default function Calendar({ clients, sessions, setSessions }) {
           const dateStr = cell.current ? getDateStr(cell.day) : '';
           const events = cell.current ? filtered.filter(s => s.date === dateStr) : [];
           const isToday = dateStr === todayStr;
+          const clientCount = cell.current ? getDayClientCount(dateStr) : 0;
           return (
             <div
               key={i}
               className={`calendar-cell${!cell.current ? ' other-month' : ''}${isToday ? ' today' : ''}${events.length > 0 ? ' has-events' : ''}`}
               onClick={() => openDay(cell.day, cell.current)}
             >
-              <div className="day-number">{cell.day}</div>
+              <div className="day-number">
+                {cell.day}
+                {clientCount > 1 && (
+                  <span className="day-client-count" title={`${clientCount} clientes`}>
+                    {clientCount}
+                  </span>
+                )}
+              </div>
               {events.slice(0, 3).map(ev => (
-                <div key={ev.id} className={`calendar-event ${ev.status.toLowerCase()}`}>
-                  {ev.time} {getClientName(ev.clientId).split(' ')[0]}
+                <div key={ev.id} className={`calendar-event ${(ev.status || '').toLowerCase()}`}>
+                  {(ev.time_start || ev.time || '—').slice(0, 5)} {getClientName(ev.client_id).split(' ')[0]}
                 </div>
               ))}
               {events.length > 3 && (
@@ -139,7 +198,7 @@ export default function Calendar({ clients, sessions, setSessions }) {
       {/* Modal */}
       {showModal && (
         <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}>
-          <div className="modal">
+          <div className="modal" style={{ maxWidth: 600 }}>
             <div className="modal-header">
               <h3>
                 <CalendarDays size={18} />
@@ -152,23 +211,28 @@ export default function Calendar({ clients, sessions, setSessions }) {
               {dayEvents.length > 0 && (
                 <div style={{ marginBottom: '1.5rem' }}>
                   <p className="text-muted mb-1" style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                    Agendamentos do dia
+                    Agendamentos do dia ({dayEvents.length})
                   </p>
                   {dayEvents.map(ev => (
                     <div key={ev.id} className="card" style={{ marginBottom: '0.5rem', padding: '0.75rem' }}>
                       <div className="flex-between">
                         <div>
                           <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                            {getClientName(ev.clientId)}
+                            {getClientName(ev.client_id)}
                           </div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-                            {ev.time} — {ev.service}
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                              <Clock size={11} />
+                              {formatTimeRange(ev)}
+                            </span>
+                            <span>•</span>
+                            <span>{ev.service}</span>
                           </div>
                         </div>
                         <div className="flex gap-1" style={{ alignItems: 'center' }}>
-                          <span className={`badge badge-${ev.status.toLowerCase()}`}>{ev.status}</span>
+                          <span className={`badge badge-${(ev.status || '').toLowerCase()}`}>{ev.status}</span>
                           <button className="btn btn-secondary btn-sm" onClick={() => editSess(ev)} style={{ padding: '0.25rem 0.5rem' }}>Editar</button>
-                          <button className="btn btn-danger btn-sm" onClick={() => deleteSession(ev.id)} style={{ padding: '0.25rem 0.5rem' }}>×</button>
+                          <button className="btn btn-danger btn-sm" onClick={() => handleDeleteSession(ev.id)} style={{ padding: '0.25rem 0.5rem' }}>×</button>
                         </div>
                       </div>
                     </div>
@@ -177,41 +241,57 @@ export default function Calendar({ clients, sessions, setSessions }) {
               )}
 
               {/* Form */}
-              <p className="text-muted mb-1" style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                {editSession ? 'Editar Agendamento' : 'Novo Agendamento'}
-              </p>
-              <div className="form-group">
-                <label><User size={12} style={{ display: 'inline', marginRight: 4 }} />Cliente</label>
-                <select className="form-control" value={form.clientId} onChange={e => setForm({ ...form, clientId: e.target.value })}>
-                  <option value="">Selecione...</option>
-                  {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
-              <div className="form-row">
+              <div style={{ 
+                borderTop: dayEvents.length > 0 ? '1px solid var(--border)' : 'none',
+                paddingTop: dayEvents.length > 0 ? '1rem' : 0,
+              }}>
+                <p className="text-muted mb-1" style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  {editSession ? 'Editar Agendamento' : <><Plus size={12} /> Novo Agendamento</>}
+                </p>
                 <div className="form-group">
-                  <label><Clock size={12} style={{ display: 'inline', marginRight: 4 }} />Horário</label>
-                  <input type="time" className="form-control" value={form.time} onChange={e => setForm({ ...form, time: e.target.value })} />
-                </div>
-                <div className="form-group">
-                  <label>Status</label>
-                  <select className="form-control" value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
-                    <option>Pendente</option>
-                    <option>Confirmado</option>
-                    <option>Concluído</option>
+                  <label><User size={12} style={{ display: 'inline', marginRight: 4 }} />Cliente</label>
+                  <select className="form-control" value={form.client_id} onChange={e => setForm({ ...form, client_id: e.target.value })}>
+                    <option value="">Selecione...</option>
+                    {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
-              </div>
-              <div className="form-group">
-                <label><Clapperboard size={12} style={{ display: 'inline', marginRight: 4 }} />Tipo de Serviço</label>
-                <select className="form-control" value={form.service} onChange={e => setForm({ ...form, service: e.target.value })}>
-                  {SERVICE_TYPES.map(s => <option key={s}>{s}</option>)}
-                </select>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label><Clock size={12} style={{ display: 'inline', marginRight: 4 }} />Início</label>
+                    <input type="time" className="form-control" value={form.time_start} onChange={e => setForm({ ...form, time_start: e.target.value })} />
+                  </div>
+                  <div className="form-group">
+                    <label><Clock size={12} style={{ display: 'inline', marginRight: 4 }} />Fim</label>
+                    <input type="time" className="form-control" value={form.time_end} onChange={e => setForm({ ...form, time_end: e.target.value })} />
+                  </div>
+                </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label><Clapperboard size={12} style={{ display: 'inline', marginRight: 4 }} />Tipo de Serviço</label>
+                    <select className="form-control" value={form.service} onChange={e => setForm({ ...form, service: e.target.value })}>
+                      {SERVICE_TYPES.map(s => <option key={s}>{s}</option>)}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>Status</label>
+                    <select className="form-control" value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
+                      <option>Pendente</option>
+                      <option>Confirmado</option>
+                      <option>Concluído</option>
+                    </select>
+                  </div>
+                </div>
               </div>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => { setShowModal(false); setEditSession(null); }}>Cancelar</button>
-              <button className="btn btn-primary" onClick={saveSession}>
-                {editSession ? 'Salvar Alterações' : 'Agendar'}
+              {editSession && (
+                <button className="btn btn-secondary" onClick={cancelEdit} style={{ marginRight: 'auto' }}>
+                  Cancelar Edição
+                </button>
+              )}
+              <button className="btn btn-secondary" onClick={() => { setShowModal(false); setEditSession(null); }}>Fechar</button>
+              <button className="btn btn-primary" onClick={handleSaveSession} disabled={saving}>
+                {saving ? 'Salvando...' : editSession ? 'Salvar Alterações' : 'Agendar'}
               </button>
             </div>
           </div>

@@ -18,12 +18,29 @@ export default function Dashboard({ clients, packages, sessions, payments, video
 
   const weekSessions = sessions.filter(s => s.date >= todayStr && s.date <= weekEndStr);
 
-  const totalOwed = packages.reduce((sum, p) => sum + (p.value - p.paid), 0);
+  const totalOwed = packages.reduce((sum, p) => sum + Math.max(0, p.value - p.paid), 0);
 
   const lowPackages = packages.filter(p => {
-    const remaining = p.totalVideos - p.delivered;
+    const remaining = p.total_videos - p.delivered;
     return p.status === 'Ativo' && remaining <= 2;
   });
+
+  const isActiveInMonth = (pkg, year, month) => {
+    if (!pkg.start_date) return pkg.status === 'Ativo';
+    const dur = pkg.duration_months || 1;
+    const start = new Date(pkg.start_date + 'T12:00');
+    const end = new Date(pkg.start_date + 'T12:00');
+    end.setMonth(end.getMonth() + dur);
+    const monthStart = new Date(year, month, 1);
+    const monthEnd = new Date(year, month + 1, 0);
+    return start <= monthEnd && end >= monthStart;
+  };
+
+  const activePkgsThisMonth = packages.filter(p => isActiveInMonth(p, today.getFullYear(), today.getMonth()));
+  const monthlyExpected = activePkgsThisMonth.reduce((s, p) => {
+    const dur = p.duration_months || 1;
+    return s + (p.value / dur);
+  }, 0);
 
   const getClientName = (id) => clients.find(c => c.id === id)?.name || '—';
 
@@ -42,8 +59,8 @@ export default function Dashboard({ clients, packages, sessions, payments, video
   // Smart alerts
   const alerts = [];
   lowPackages.forEach(pkg => {
-    const client = getClientName(pkg.clientId);
-    const remaining = pkg.totalVideos - pkg.delivered;
+    const client = getClientName(pkg.client_id);
+    const remaining = pkg.total_videos - pkg.delivered;
     alerts.push({
       type: remaining <= 1 ? 'urgent' : 'warning',
       text: `<strong>${client}</strong> tem apenas ${remaining} vídeo${remaining !== 1 ? 's' : ''} restante${remaining !== 1 ? 's' : ''} — agende nova gravação`,
@@ -52,7 +69,7 @@ export default function Dashboard({ clients, packages, sessions, payments, video
 
   const pendingPayments = packages.filter(p => p.value > p.paid && p.status === 'Ativo');
   pendingPayments.forEach(pkg => {
-    const client = getClientName(pkg.clientId);
+    const client = getClientName(pkg.client_id);
     const owed = pkg.value - pkg.paid;
     alerts.push({
       type: 'info',
@@ -90,13 +107,13 @@ export default function Dashboard({ clients, packages, sessions, payments, video
           </div>
         </div>
         <div className="summary-card" onClick={() => onNavigate('payments')} style={{ cursor: 'pointer' }}>
-          <div className="icon-wrap" style={{ background: totalOwed > 0 ? 'rgba(239,68,68,0.15)' : undefined, color: totalOwed > 0 ? 'var(--danger)' : undefined }}>
+          <div className="icon-wrap" style={{ background: 'rgba(96,165,250,0.15)', color: 'var(--info)' }}>
             <DollarSign size={20} />
           </div>
           <div className="info">
-            <h4>A Receber</h4>
-            <div className="value" style={{ color: totalOwed > 0 ? 'var(--danger)' : 'var(--success)' }}>
-              R$ {totalOwed.toLocaleString('pt-BR')}
+            <h4>Previsto/Mês</h4>
+            <div className="value" style={{ color: 'var(--info)' }}>
+              R$ {monthlyExpected.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
             </div>
           </div>
         </div>
@@ -155,17 +172,20 @@ export default function Dashboard({ clients, packages, sessions, payments, video
                 </thead>
                 <tbody>
                   {weekSessions
-                    .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
+                    .sort((a, b) => a.date.localeCompare(b.date) || (a.time_start || a.time || '').localeCompare(b.time_start || b.time || ''))
                     .map(s => (
                       <tr key={s.id}>
                         <td style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
                           {new Date(s.date + 'T12:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
                         </td>
-                        <td>{s.time}</td>
-                        <td style={{ color: 'var(--text-primary)' }}>{getClientName(s.clientId)}</td>
+                        <td>
+                          {s.time_start || s.time || '—'}
+                          {s.time_end && ` — ${s.time_end}`}
+                        </td>
+                        <td style={{ color: 'var(--text-primary)' }}>{getClientName(s.client_id)}</td>
                         <td>{s.service}</td>
                         <td>
-                          <span className={`badge badge-${s.status.toLowerCase()}`}>
+                          <span className={`badge badge-${(s.status || '').toLowerCase()}`}>
                             {s.status === 'Confirmado' ? 'Confirmado' : s.status === 'Pendente' ? 'Pendente' : 'Concluído'}
                           </span>
                         </td>
@@ -206,15 +226,15 @@ export default function Dashboard({ clients, packages, sessions, payments, video
           <h3 className="section-title mt-2"><DollarSign size={18} /> Resumo Financeiro</h3>
           <div className="card">
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid var(--border)' }}>
-              <span className="text-muted" style={{ fontSize: '0.82rem' }}>Total Recebido (Geral)</span>
-              <span style={{ color: 'var(--success)', fontWeight: 600 }}>
-                R$ {payments.reduce((s, p) => s + p.amount, 0).toLocaleString('pt-BR')}
+              <span className="text-muted" style={{ fontSize: '0.82rem' }}>Previsto/Mês (Contratos)</span>
+              <span style={{ color: 'var(--info)', fontWeight: 600 }}>
+                R$ {monthlyExpected.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
               </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid var(--border)' }}>
-              <span className="text-muted" style={{ fontSize: '0.82rem' }}>Total Contratado</span>
-              <span style={{ fontWeight: 600 }}>
-                R$ {packages.reduce((s, p) => s + p.value, 0).toLocaleString('pt-BR')}
+              <span className="text-muted" style={{ fontSize: '0.82rem' }}>Total Recebido (Geral)</span>
+              <span style={{ color: 'var(--success)', fontWeight: 600 }}>
+                R$ {payments.reduce((s, p) => s + p.amount, 0).toLocaleString('pt-BR')}
               </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0' }}>

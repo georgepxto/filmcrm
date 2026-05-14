@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import {
   LayoutDashboard, CalendarDays, Users, Film, DollarSign,
-  Menu, X, Clapperboard,
+  Menu, X, Clapperboard, LogOut, Loader,
 } from 'lucide-react';
-import {
-  INITIAL_CLIENTS, INITIAL_PACKAGES, INITIAL_SESSIONS,
-  INITIAL_VIDEOS, INITIAL_PAYMENTS,
-} from './data';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { useSupabaseData } from './hooks/useSupabaseData';
+import { ToastProvider } from './components/Toast';
+import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import Calendar from './components/Calendar';
 import Clients from './components/Clients';
@@ -21,55 +21,64 @@ const NAV_ITEMS = [
   { key: 'payments', label: 'Pagamentos', icon: DollarSign },
 ];
 
-export default function App() {
+function AppContent() {
+  const { user, loading: authLoading, signOut } = useAuth();
   const [page, setPage] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const [clients, setClients] = useState(INITIAL_CLIENTS);
-  const [packages, setPackages] = useState(INITIAL_PACKAGES);
-  const [sessions, setSessions] = useState(INITIAL_SESSIONS);
-  const [videos, setVideos] = useState(INITIAL_VIDEOS);
-  const [payments, setPayments] = useState(INITIAL_PAYMENTS);
-
-  // When registering a payment, also update packages paid amount
-  const handleSetPayments = (updater) => {
-    setPayments(prev => {
-      const next = typeof updater === 'function' ? updater(prev) : updater;
-      // Find newly added payments
-      const newPayments = next.filter(np => !prev.find(op => op.id === np.id));
-      if (newPayments.length > 0) {
-        setPackages(pkgs =>
-          pkgs.map(pkg => {
-            const added = newPayments.filter(p => p.packageId === pkg.id).reduce((s, p) => s + p.amount, 0);
-            return added > 0 ? { ...pkg, paid: pkg.paid + added } : pkg;
-          })
-        );
-      }
-      return next;
-    });
-  };
+  const data = useSupabaseData();
 
   const navigate = (key) => {
     setPage(key);
     setSidebarOpen(false);
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+  };
+
+  // Show loading spinner while checking auth
+  if (authLoading) {
+    return (
+      <div className="loading-screen">
+        <Loader size={32} className="login-spinner" />
+        <p>Carregando...</p>
+      </div>
+    );
+  }
+
+  // Show login if not authenticated
+  if (!user) {
+    return <Login />;
+  }
+
   const renderPage = () => {
+    if (data.loading) {
+      return (
+        <div className="loading-screen" style={{ minHeight: '60vh' }}>
+          <Loader size={28} className="login-spinner" />
+          <p>Carregando dados...</p>
+        </div>
+      );
+    }
+
     switch (page) {
       case 'dashboard':
-        return <Dashboard clients={clients} packages={packages} sessions={sessions} payments={payments} videos={videos} onNavigate={navigate} />;
+        return <Dashboard clients={data.clients} packages={data.packages} sessions={data.sessions} payments={data.payments} videos={data.videos} onNavigate={navigate} />;
       case 'calendar':
-        return <Calendar clients={clients} sessions={sessions} setSessions={setSessions} />;
+        return <Calendar clients={data.clients} sessions={data.sessions} addSession={data.addSession} updateSession={data.updateSession} deleteSession={data.deleteSession} />;
       case 'clients':
-        return <Clients clients={clients} setClients={setClients} packages={packages} setPackages={setPackages} />;
+        return <Clients clients={data.clients} packages={data.packages} addClient={data.addClient} updateClient={data.updateClient} deleteClient={data.deleteClient} addPackage={data.addPackage} updatePackage={data.updatePackage} />;
       case 'posts':
-        return <PostControl clients={clients} videos={videos} setVideos={setVideos} packages={packages} />;
+        return <PostControl clients={data.clients} videos={data.videos} packages={data.packages} addVideo={data.addVideo} updateVideo={data.updateVideo} deleteVideo={data.deleteVideo} />;
       case 'payments':
-        return <Payments clients={clients} packages={packages} payments={payments} setPayments={handleSetPayments} />;
+        return <Payments clients={data.clients} packages={data.packages} payments={data.payments} addPayment={data.addPayment} deletePayment={data.deletePayment} />;
       default:
         return null;
     }
   };
+
+  const userName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário';
 
   return (
     <>
@@ -97,9 +106,21 @@ export default function App() {
               </button>
             ))}
           </nav>
-          <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-            <p>FilmmakerCRM v1.0</p>
-            <p style={{ opacity: 0.6, marginTop: '0.15rem' }}>Dados em memória local</p>
+
+          {/* User section */}
+          <div className="sidebar-user">
+            <div className="sidebar-user-info">
+              <div className="sidebar-user-avatar">
+                {userName.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <p className="sidebar-user-name">{userName}</p>
+                <p className="sidebar-user-email">{user.email}</p>
+              </div>
+            </div>
+            <button className="sidebar-logout" onClick={handleSignOut} title="Sair">
+              <LogOut size={16} />
+            </button>
           </div>
         </aside>
 
@@ -117,5 +138,15 @@ export default function App() {
         />
       )}
     </>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <ToastProvider>
+        <AppContent />
+      </ToastProvider>
+    </AuthProvider>
   );
 }

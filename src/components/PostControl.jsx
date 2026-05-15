@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  Film, Plus, X, Calendar, CheckSquare, Square,
+  Film, Plus, X, Calendar, CheckSquare, Square, MessageCircle
 } from 'lucide-react';
 import { useToast } from './Toast';
 
@@ -29,6 +29,7 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
   const [form, setForm] = useState(emptyForm);
 
   const getName = (id) => clients.find(c => c.id === id)?.name || '—';
+  const getPhone = (id) => clients.find(c => c.id === id)?.contact || '';
   const filtered = filterClient ? videos.filter(v => v.client_id === filterClient) : videos;
 
   const getStage = (v) => {
@@ -167,7 +168,14 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
                   >
                     <div className="kanban-drag-handle" title="Arraste para mover">⠿</div>
                     <h5>{v.title}</h5>
-                    <p>{getName(v.client_id)}</p>
+                    <div className="flex-between">
+                      <p>{getName(v.client_id)}</p>
+                      {getPhone(v.client_id) && (
+                        <a href={`https://wa.me/${getPhone(v.client_id).replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" style={{ color: '#25D366', marginLeft: '0.5rem' }} title="Falar no WhatsApp" onDragStart={e => e.preventDefault()}>
+                          <MessageCircle size={13} />
+                        </a>
+                      )}
+                    </div>
                     {v.planned_date && (
                       <p style={{ marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                         <Calendar size={10} /> {new Date(v.planned_date + 'T12:00').toLocaleDateString('pt-BR')}

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   Users, Plus, X, Package, Phone, Mail, AlertTriangle,
-  Pause, CheckCircle, Play, Edit,
+  Pause, CheckCircle, Play, Edit, MessageCircle, Link as LinkIcon, Bookmark, Trash2
 } from 'lucide-react';
 import { useToast } from './Toast';
 
@@ -15,19 +15,23 @@ const formatPhone = (value) => {
   return `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7,11)}`;
 };
 
-export default function Clients({ clients, packages, addClient, updateClient, deleteClient, addPackage, updatePackage }) {
+export default function Clients({ clients, packages, references, addClient, updateClient, deleteClient, addPackage, updatePackage, addReference, updateReference, deleteReference }) {
   const toast = useToast();
   const [showClientModal, setShowClientModal] = useState(false);
   const [showPackageModal, setShowPackageModal] = useState(false);
   const [editClientData, setEditClientData] = useState(null);
   const [editPackageData, setEditPackageData] = useState(null);
+  const [showRefModal, setShowRefModal] = useState(false);
+  const [editRefData, setEditRefData] = useState(null);
   const [selectedClient, setSelectedClient] = useState(null);
   const [saving, setSaving] = useState(false);
 
   const emptyClient = { name: '', contact: '', email: '' };
   const emptyPackage = { client_id: '', name: '', total_videos: 4, delivered: 0, posted: 0, status: 'Ativo', value: 0, paid: 0, duration_months: 1, start_date: new Date().toISOString().slice(0, 10) };
+  const emptyRef = { client_id: '', title: '', url: '', notes: '' };
   const [clientForm, setClientForm] = useState(emptyClient);
   const [pkgForm, setPkgForm] = useState(emptyPackage);
+  const [refForm, setRefForm] = useState(emptyRef);
 
   const openClientModal = (c = null) => {
     setEditClientData(c);
@@ -97,6 +101,31 @@ export default function Clients({ clients, packages, addClient, updateClient, de
     setShowPackageModal(false);
   };
 
+  const openRefModal = (clientId, ref = null) => {
+    setEditRefData(ref);
+    setRefForm(ref ? { client_id: ref.client_id, title: ref.title, url: ref.url, notes: ref.notes } : { ...emptyRef, client_id: clientId });
+    setShowRefModal(true);
+  };
+
+  const saveRef = async () => {
+    if (!refForm.title.trim() || !refForm.url.trim()) return;
+    setSaving(true);
+    if (editRefData) {
+      const result = await updateReference(editRefData.id, refForm);
+      result ? toast.success('Referência atualizada') : toast.error('Erro ao atualizar referência');
+    } else {
+      const result = await addReference(refForm);
+      result ? toast.success('Referência adicionada') : toast.error('Erro ao adicionar referência');
+    }
+    setSaving(false);
+    setShowRefModal(false);
+  };
+
+  const handleDeleteRef = async (id) => {
+    const result = await deleteReference(id);
+    result ? toast.success('Referência removida') : toast.error('Erro ao remover referência');
+  };
+
   const getStatusIcon = (status) => {
     switch (status) {
       case 'Ativo': return <Play size={12} />;
@@ -129,6 +158,11 @@ export default function Clients({ clients, packages, addClient, updateClient, de
               <div className="flex-between mb-1">
                 <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.05rem' }}>{c.name}</h3>
                 <div className="flex gap-1">
+                  {c.contact && (
+                    <a href={`https://wa.me/${c.contact.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-sm" style={{ padding: '0.25rem 0.4rem', color: '#25D366', borderColor: 'rgba(37,211,102,0.3)' }} title="Falar no WhatsApp">
+                      <MessageCircle size={13} />
+                    </a>
+                  )}
                   <button className="btn btn-secondary btn-sm" onClick={() => openClientModal(c)} style={{ padding: '0.25rem 0.4rem' }}>
                     <Edit size={13} />
                   </button>
@@ -233,6 +267,41 @@ export default function Clients({ clients, packages, addClient, updateClient, de
                         </div>
                       );
                     })
+                  )}
+                </div>
+              )}
+
+              {/* References Section */}
+              {isExpanded && (
+                <div style={{ marginTop: '1rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
+                  <div className="flex-between mb-1">
+                    <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>
+                      <Bookmark size={12} style={{ display: 'inline', marginRight: 4 }} /> Referências (Moodboard)
+                    </span>
+                    <button className="btn btn-secondary btn-sm" style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem' }} onClick={() => openRefModal(c.id)}>
+                      <Plus size={12} /> Add
+                    </button>
+                  </div>
+                  
+                  {references.filter(r => r.client_id === c.id).length === 0 ? (
+                    <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>Nenhuma referência salva</p>
+                  ) : (
+                    <div style={{ display: 'grid', gap: '0.5rem', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
+                      {references.filter(r => r.client_id === c.id).map(ref => (
+                        <div key={ref.id} className="card" style={{ padding: '0.75rem', position: 'relative' }}>
+                          <h4 style={{ fontSize: '0.85rem', marginBottom: '0.2rem', paddingRight: '1rem' }}>{ref.title}</h4>
+                          <a href={ref.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.7rem', color: 'var(--info)', display: 'flex', alignItems: 'center', gap: '0.25rem', textDecoration: 'none', marginBottom: '0.5rem' }}>
+                            <LinkIcon size={10} /> Abrir Link
+                          </a>
+                          {ref.notes && <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0' }}>{ref.notes}</p>}
+                          
+                          <div style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', display: 'flex', gap: '0.2rem' }}>
+                            <button onClick={() => openRefModal(c.id, ref)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><Edit size={12} /></button>
+                            <button onClick={() => handleDeleteRef(ref.id)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}><Trash2 size={12} /></button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               )}
@@ -471,6 +540,37 @@ export default function Clients({ clients, packages, addClient, updateClient, de
           </div>
         );
       })()}
+      {/* Reference Modal */}
+      {showRefModal && (
+        <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setShowRefModal(false); }}>
+          <div className="modal" style={{ maxWidth: 500 }}>
+            <div className="modal-header">
+              <h3><Bookmark size={18} /> {editRefData ? 'Editar Referência' : 'Nova Referência'}</h3>
+              <button className="modal-close" onClick={() => setShowRefModal(false)}><X size={18} /></button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label>Título / Ideia</label>
+                <input className="form-control" placeholder="Ex: Transição de câmera Reels" value={refForm.title} onChange={e => setRefForm({ ...refForm, title: e.target.value })} />
+              </div>
+              <div className="form-group">
+                <label>Link (URL)</label>
+                <input className="form-control" placeholder="https://instagram.com/..." value={refForm.url} onChange={e => setRefForm({ ...refForm, url: e.target.value })} />
+              </div>
+              <div className="form-group">
+                <label>Anotações (Opcional)</label>
+                <textarea className="form-control" rows="3" placeholder="Gostei da iluminação, podemos usar a mesma paleta" value={refForm.notes} onChange={e => setRefForm({ ...refForm, notes: e.target.value })} />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowRefModal(false)}>Cancelar</button>
+              <button className="btn btn-primary" onClick={saveRef} disabled={saving}>
+                {saving ? 'Salvando...' : 'Salvar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

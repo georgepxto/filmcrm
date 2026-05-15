@@ -10,6 +10,7 @@ export function useSupabaseData() {
   const [sessions, setSessions] = useState([]);
   const [videos, setVideos] = useState([]);
   const [payments, setPayments] = useState([]);
+  const [references, setReferences] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // ─── Fetch all data ───
@@ -17,12 +18,13 @@ export function useSupabaseData() {
     if (!user) return;
     setLoading(true);
     try {
-      const [cRes, pRes, sRes, vRes, payRes] = await Promise.all([
+      const [cRes, pRes, sRes, vRes, payRes, rRes] = await Promise.all([
         supabase.from('clients').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
         supabase.from('packages').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
         supabase.from('sessions').select('*').eq('user_id', user.id).order('date', { ascending: true }),
         supabase.from('videos').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
         supabase.from('payments').select('*').eq('user_id', user.id).order('date', { ascending: false }),
+        supabase.from('references').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
       ]);
 
       if (cRes.data) setClients(cRes.data);
@@ -30,6 +32,7 @@ export function useSupabaseData() {
       if (sRes.data) setSessions(sRes.data);
       if (vRes.data) setVideos(vRes.data);
       if (payRes.data) setPayments(payRes.data);
+      if (rRes.data) setReferences(rRes.data);
     } catch (err) {
       console.error('Error fetching data:', err);
     }
@@ -230,6 +233,38 @@ export function useSupabaseData() {
     return true;
   };
 
+  // ─── References CRUD ───
+  const addReference = async (reference) => {
+    const { data, error } = await supabase
+      .from('references')
+      .insert([{ ...reference, user_id: user.id }])
+      .select()
+      .single();
+    if (error) { console.error('addReference error:', error); return null; }
+    setReferences(prev => [data, ...prev]);
+    return data;
+  };
+
+  const updateReference = async (id, updates) => {
+    const { data, error } = await supabase
+      .from('references')
+      .update(updates)
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select()
+      .single();
+    if (error) { console.error('updateReference error:', error); return null; }
+    setReferences(prev => prev.map(r => r.id === id ? data : r));
+    return data;
+  };
+
+  const deleteReference = async (id) => {
+    const { error } = await supabase.from('references').delete().eq('id', id).eq('user_id', user.id);
+    if (error) { console.error('deleteReference error:', error); return false; }
+    setReferences(prev => prev.filter(r => r.id !== id));
+    return true;
+  };
+
   return {
     // Data
     clients,
@@ -237,6 +272,7 @@ export function useSupabaseData() {
     sessions,
     videos,
     payments,
+    references,
     loading,
     refetch: fetchAll,
 
@@ -263,5 +299,10 @@ export function useSupabaseData() {
     // Payments
     addPayment,
     deletePayment,
+
+    // References
+    addReference,
+    updateReference,
+    deleteReference,
   };
 }

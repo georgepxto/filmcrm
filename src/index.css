@@ -131,9 +131,20 @@ h1, h2, h3, h4 {
 
 .main-content {
   flex: 1;
+  min-width: 0; /* Prevents flex children from causing page horizontal scroll */
   margin-left: 260px;
   padding: 2rem 2.5rem;
   min-height: 100vh;
+}
+
+.dashboard-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.dashboard-layout > div {
+  min-width: 0;
 }
 
 .page-header {
@@ -673,15 +684,36 @@ tbody tr:hover { background: var(--bg-card-hover); }
 }
 
 /* ── Responsive ── */
+@media (max-width: 900px) {
+  .summary-cards { grid-template-columns: 1fr 1fr; }
+  .kanban-board { grid-template-columns: 1fr 1fr; }
+}
+
 @media (max-width: 768px) {
   .mobile-toggle { display: flex; }
   .sidebar { transform: translateX(-100%); }
   .sidebar.open { transform: translateX(0); }
   .main-content { margin-left: 0; padding: 1rem; padding-top: 4rem; }
-  .summary-cards { grid-template-columns: 1fr 1fr; }
+  .page-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
+  .page-header .flex { flex-wrap: wrap; }
+  .page-header select { min-width: 100% !important; }
+
+  .summary-cards { grid-template-columns: 1fr; }
   .kanban-board { grid-template-columns: 1fr; }
   .form-row { grid-template-columns: 1fr; }
-  .calendar-cell { min-height: 60px; }
+  .dashboard-layout { grid-template-columns: 1fr; }
+  
+  /* Calendar Mobile Optimization */
+  .calendar-wrapper {
+    overflow-x: auto;
+    width: 100%;
+    padding-bottom: 1rem;
+  }
+  .calendar-grid {
+    min-width: 600px; /* Force scroll instead of squishing */
+  }
+  
+  .calendar-cell { min-height: 80px; }
   .calendar-event { display: none; }
   .calendar-cell.has-events::after {
     content: '';
@@ -697,8 +729,11 @@ tbody tr:hover { background: var(--bg-card-hover); }
 }
 
 @media (max-width: 480px) {
-  .summary-cards { grid-template-columns: 1fr; }
   .page-header h2 { font-size: 1.3rem; }
+  .modal { max-height: 85vh; padding: 0; }
+  .modal-body { padding: 1rem; }
+  .modal-footer { flex-direction: column; }
+  .modal-footer .btn { width: 100%; justify-content: center; margin: 0 !important; }
 }
 
 /* ── Misc ── */
@@ -1285,3 +1320,19 @@ tbody tr:hover { background: var(--bg-card-hover); }
   justify-content: center;
 }
 
+/* ═══════════════════════════════════════════
+   Google Calendar Events
+   ═══════════════════════════════════════════ */
+
+.calendar-event.google-event {
+  background: rgba(96, 165, 250, 0.1);
+  border-left: 2px solid var(--info);
+  color: var(--info);
+  font-size: 0.58rem;
+  opacity: 0.85;
+}
+
+.calendar-event.google-event:hover {
+  opacity: 1;
+  background: rgba(96, 165, 250, 0.18);
+}

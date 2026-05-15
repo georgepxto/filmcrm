@@ -130,7 +130,7 @@ export default function Dashboard({ clients, packages, sessions, payments, video
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+      <div className="dashboard-layout">
         {/* Left column */}
         <div>
           {/* Alerts */}

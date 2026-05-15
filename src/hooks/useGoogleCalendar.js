@@ -1,0 +1,205 @@
+import { useState, useCallback, useEffect, useRef } from 'react';
+
+const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const SCOPES = 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly';
+const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
+const LS_TOKEN_KEY = 'filmcrm_gcal_token';
+const LS_EXPIRY_KEY = 'filmcrm_gcal_expiry';
+
+/**
+ * Hook for Google Calendar integration.
+ * Stores the access token in localStorage to survive page reloads.
+ * Filters out CRM-created events to avoid duplication.
+ */
+export function useGoogleCalendar() {
+  const [isSignedIn, setIsSignedIn] = useState(false);
+  const [gapiReady, setGapiReady] = useState(false);
+  const [gisReady, setGisReady] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [events, setEvents] = useState([]);
+  const tokenClientRef = useRef(null);
+  const accessTokenRef = useRef(null);
+  const restoredRef = useRef(false);
+
+  // Apply token to GAPI and persist
+  const applyToken = useCallback((token, expiresInSec) => {
+    accessTokenRef.current = token;
+    window.gapi.client.setToken({ access_token: token });
+    setIsSignedIn(true);
+
+    // Store token and when it expires
+    localStorage.setItem(LS_TOKEN_KEY, token);
+    if (expiresInSec) {
+      const expiryMs = Date.now() + expiresInSec * 1000;
+      localStorage.setItem(LS_EXPIRY_KEY, String(expiryMs));
+    }
+  }, []);
+
+  const clearAuth = useCallback(() => {
+    accessTokenRef.current = null;
+    localStorage.removeItem(LS_TOKEN_KEY);
+    localStorage.removeItem(LS_EXPIRY_KEY);
+    setIsSignedIn(false);
+    setEvents([]);
+    try { window.gapi?.client?.setToken(null); } catch (_) {}
+  }, []);
+
+  // Initialize GAPI client
+  useEffect(() => {
+    if (!CLIENT_ID) return;
+    const initGapi = () => {
+      window.gapi.load('client', async () => {
+        await window.gapi.client.init({});
+        await window.gapi.client.load(DISCOVERY_DOC);
+        setGapiReady(true);
+      });
+    };
+    if (window.gapi) {
+      initGapi();
+    } else {
+      const interval = setInterval(() => {
+        if (window.gapi) { clearInterval(interval); initGapi(); }
+      }, 200);
+      return () => clearInterval(interval);
+    }
+  }, []);
+
+  // Initialize Google Identity Services
+  useEffect(() => {
+    if (!CLIENT_ID) return;
+    const initGis = () => {
+      tokenClientRef.current = window.google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: SCOPES,
+        callback: (response) => {
+          if (response.error) {
+            console.error('Google OAuth error:', response);
+            clearAuth();
+            return;
+          }
+          applyToken(response.access_token, response.expires_in);
+        },
+      });
+      setGisReady(true);
+    };
+    if (window.google?.accounts?.oauth2) {
+      initGis();
+    } else {
+      const interval = setInterval(() => {
+        if (window.google?.accounts?.oauth2) { clearInterval(interval); initGis(); }
+      }, 200);
+      return () => clearInterval(interval);
+    }
+  }, [applyToken, clearAuth]);
+
+  // Restore saved token on page load (NO popup)
+  useEffect(() => {
+    if (!gapiReady || restoredRef.current) return;
+    restoredRef.current = true;
+
+    const savedToken = localStorage.getItem(LS_TOKEN_KEY);
+    const savedExpiry = localStorage.getItem(LS_EXPIRY_KEY);
+
+    if (!savedToken) return;
+
+    // Check if token is still valid (with 60s buffer)
+    if (savedExpiry && Date.now() > Number(savedExpiry) - 60000) {
+      clearAuth();
+      return;
+    }
+
+    // Restore the token directly — no popup
+    accessTokenRef.current = savedToken;
+    window.gapi.client.setToken({ access_token: savedToken });
+    setIsSignedIn(true);
+  }, [gapiReady, clearAuth]);
+
+  const ready = gapiReady && gisReady && !!CLIENT_ID;
+
+  // Manual sign in
+  const signIn = useCallback(() => {
+    if (!tokenClientRef.current) return;
+    tokenClientRef.current.requestAccessToken({ prompt: 'select_account' });
+  }, []);
+
+  // Sign out and clear
+  const signOut = useCallback(() => {
+    if (accessTokenRef.current) {
+      window.google.accounts.oauth2.revoke(accessTokenRef.current, () => {});
+    }
+    clearAuth();
+  }, [clearAuth]);
+
+  // Fetch events — filters out CRM-created events to prevent duplication
+  const fetchEvents = useCallback(async (timeMin, timeMax) => {
+    if (!isSignedIn) return [];
+    setLoading(true);
+    try {
+      const response = await window.gapi.client.calendar.events.list({
+        calendarId: 'primary',
+        timeMin: new Date(timeMin).toISOString(),
+        timeMax: new Date(timeMax).toISOString(),
+        showDeleted: false,
+        singleEvents: true,
+        orderBy: 'startTime',
+        maxResults: 250,
+      });
+      const items = (response.result.items || []).filter(ev => {
+        // Skip events created by FilmmakerCRM to avoid duplicates
+        const desc = (ev.description || '').toLowerCase();
+        const summary = ev.summary || '';
+        if (desc.includes('filmmakercrm')) return false;
+        if (summary.startsWith('📹')) return false;
+        return true;
+      });
+      setEvents(items);
+      setLoading(false);
+      return items;
+    } catch (err) {
+      if (err?.status === 401 || err?.result?.error?.code === 401) {
+        clearAuth();
+      }
+      console.error('Error fetching Google Calendar events:', err);
+      setLoading(false);
+      return [];
+    }
+  }, [isSignedIn, clearAuth]);
+
+  // Create a new event on Google Calendar
+  const createEvent = useCallback(async ({ summary, description, date, timeStart, timeEnd, location }) => {
+    if (!isSignedIn) return null;
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const event = {
+        summary,
+        description: description || '',
+        location: location || '',
+        start: { dateTime: `${date}T${timeStart || '09:00'}:00`, timeZone: tz },
+        end:   { dateTime: `${date}T${timeEnd   || '10:00'}:00`, timeZone: tz },
+        colorId: '6',
+      };
+      const response = await window.gapi.client.calendar.events.insert({
+        calendarId: 'primary',
+        resource: event,
+      });
+      return response.result;
+    } catch (err) {
+      console.error('Error creating Google Calendar event:', err);
+      return null;
+    }
+  }, [isSignedIn]);
+
+  // Delete an event from Google Calendar
+  const deleteEvent = useCallback(async (eventId) => {
+    if (!isSignedIn || !eventId) return false;
+    try {
+      await window.gapi.client.calendar.events.delete({ calendarId: 'primary', eventId });
+      return true;
+    } catch (err) {
+      console.error('Error deleting Google Calendar event:', err);
+      return false;
+    }
+  }, [isSignedIn]);
+
+  return { ready, isSignedIn, loading, events, signIn, signOut, fetchEvents, createEvent, deleteEvent };
+}

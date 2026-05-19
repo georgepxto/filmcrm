@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { supabase } from '../lib/supabase';
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const SCOPES = 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly';
@@ -68,16 +69,25 @@ export function useGoogleCalendar() {
   useEffect(() => {
     if (!CLIENT_ID) return;
     const initGis = () => {
-      tokenClientRef.current = window.google.accounts.oauth2.initTokenClient({
+      tokenClientRef.current = window.google.accounts.oauth2.initCodeClient({
         client_id: CLIENT_ID,
         scope: SCOPES,
-        callback: (response) => {
+        access_type: 'offline',
+        callback: async (response) => {
           if (response.error) {
             console.error('Google OAuth error:', response);
             clearAuth();
             return;
           }
-          applyToken(response.access_token, response.expires_in);
+          const { data, error } = await supabase.functions.invoke('google-calendar', {
+            body: { action: 'exchange_code', code: response.code }
+          });
+          if (error || !data?.access_token) {
+            console.error('Failed to exchange code:', error || data?.error);
+            clearAuth();
+            return;
+          }
+          applyToken(data.access_token, data.expires_in);
         },
       });
       setGisReady(true);
@@ -92,34 +102,44 @@ export function useGoogleCalendar() {
     }
   }, [applyToken, clearAuth]);
 
-  // Restore saved token on page load (NO popup)
+  // Restore saved token on page load or fetch from backend
   useEffect(() => {
     if (!gapiReady || restoredRef.current) return;
     restoredRef.current = true;
 
-    const savedToken = localStorage.getItem(LS_TOKEN_KEY);
-    const savedExpiry = localStorage.getItem(LS_EXPIRY_KEY);
+    const attemptRestore = async () => {
+      const savedToken = localStorage.getItem(LS_TOKEN_KEY);
+      const savedExpiry = localStorage.getItem(LS_EXPIRY_KEY);
 
-    if (!savedToken) return;
+      if (savedToken && savedExpiry && Date.now() < Number(savedExpiry) - 60000) {
+        accessTokenRef.current = savedToken;
+        window.gapi.client.setToken({ access_token: savedToken });
+        setIsSignedIn(true);
+        return;
+      }
 
-    // Check if token is still valid (with 60s buffer)
-    if (savedExpiry && Date.now() > Number(savedExpiry) - 60000) {
-      clearAuth();
-      return;
-    }
+      // Token expired or missing locally, ask backend for a fresh one
+      const { data, error } = await supabase.functions.invoke('google-calendar', {
+        body: { action: 'get_token' }
+      });
 
-    // Restore the token directly — no popup
-    accessTokenRef.current = savedToken;
-    window.gapi.client.setToken({ access_token: savedToken });
-    setIsSignedIn(true);
-  }, [gapiReady, clearAuth]);
+      if (error || !data?.access_token) {
+        clearAuth();
+        return;
+      }
+      
+      applyToken(data.access_token, data.expires_in);
+    };
+
+    attemptRestore();
+  }, [gapiReady, clearAuth, applyToken]);
 
   const ready = gapiReady && gisReady && !!CLIENT_ID;
 
   // Manual sign in
   const signIn = useCallback(() => {
     if (!tokenClientRef.current) return;
-    tokenClientRef.current.requestAccessToken({ prompt: 'select_account' });
+    tokenClientRef.current.requestCode({ prompt: 'consent' });
   }, []);
 
   // Sign out and clear
@@ -157,7 +177,15 @@ export function useGoogleCalendar() {
       return items;
     } catch (err) {
       if (err?.status === 401 || err?.result?.error?.code === 401) {
-        clearAuth();
+        supabase.functions.invoke('google-calendar', {
+          body: { action: 'get_token' }
+        }).then(({ data }) => {
+          if (data?.access_token) {
+            applyToken(data.access_token, data.expires_in);
+          } else {
+            clearAuth();
+          }
+        });
       }
       console.error('Error fetching Google Calendar events:', err);
       setLoading(false);

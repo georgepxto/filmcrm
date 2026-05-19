@@ -5,13 +5,12 @@ import {
 import { useToast } from './Toast';
 
 const STAGES = [
-  { key: 'recorded', label: 'Gravado', color: 'var(--warning)' },
   { key: 'edited', label: 'Editado', color: 'var(--amber)' },
   { key: 'delivered', label: 'Entregue', color: 'var(--info)' },
   { key: 'posted', label: 'Postado', color: 'var(--success)' },
 ];
 
-const STAGE_ORDER = ['recorded', 'edited', 'delivered', 'posted'];
+const STAGE_ORDER = ['edited', 'delivered', 'posted'];
 
 export default function PostControl({ clients, videos, packages, addVideo, updateVideo, deleteVideo }) {
   const toast = useToast();
@@ -25,7 +24,7 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
   const [draggedId, setDraggedId] = useState(null);
   const [dragOverColumn, setDragOverColumn] = useState(null);
 
-  const emptyForm = { client_id: '', package_id: '', title: '', recorded: false, edited: false, delivered: false, posted: false, planned_date: '', actual_date: '' };
+  const emptyForm = { client_id: '', package_id: '', title: '', edited: false, delivered: false, posted: false, planned_date: '' };
   const [form, setForm] = useState(emptyForm);
 
   const getName = (id) => clients.find(c => c.id === id)?.name || '—';
@@ -35,8 +34,7 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
   const getStage = (v) => {
     if (v.posted) return 'posted';
     if (v.delivered) return 'delivered';
-    if (v.edited) return 'edited';
-    return 'recorded';
+    return 'edited';
   };
 
   // ── Drag & Drop handlers ──
@@ -67,13 +65,6 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
     STAGE_ORDER.forEach((stage, idx) => {
       updates[stage] = idx <= targetIdx;
     });
-    // If dropping in posted, record actual date
-    if (targetStageKey === 'posted') {
-      const video = videos.find(v => v.id === draggedId);
-      if (video && !video.posted) {
-        updates.actual_date = new Date().toISOString().slice(0, 10);
-      }
-    }
 
     const result = await updateVideo(draggedId, updates);
     setDraggedId(null);
@@ -96,7 +87,7 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
   const openModal = (video = null) => {
     setEditVideoData(video);
     if (video) {
-      setForm({ client_id: video.client_id, package_id: video.package_id || '', title: video.title, recorded: video.recorded, edited: video.edited, delivered: video.delivered, posted: video.posted, planned_date: video.planned_date || '', actual_date: video.actual_date || '' });
+      setForm({ client_id: video.client_id, package_id: video.package_id || '', title: video.title, edited: video.edited, delivered: video.delivered, posted: video.posted, planned_date: video.planned_date || '' });
     } else {
       const cId = filterClient || clients[0]?.id || '';
       const cp = packages.filter(p => p.client_id === cId);
@@ -130,7 +121,7 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
             <option value="">Todos os clientes</option>
             {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
-          <button className={`btn ${viewMode === 'kanban' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => setViewMode('kanban')}>Kanban</button>
+          <button className={`btn ${viewMode === 'kanban' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => setViewMode('kanban')}>Clientes</button>
           <button className={`btn ${viewMode === 'list' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => setViewMode('list')}>Lista</button>
           <button className="btn btn-primary" onClick={() => openModal()}><Plus size={16} /> Vídeo</button>
         </div>
@@ -211,7 +202,7 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
       ) : (
         <div className="table-wrap">
           <table>
-            <thead><tr><th>Vídeo</th><th>Cliente</th><th>Gravado</th><th>Editado</th><th>Entregue</th><th>Postado</th><th>Previsão</th><th>Postagem Real</th><th></th></tr></thead>
+            <thead><tr><th>Vídeo</th><th>Cliente</th><th>Editado</th><th>Entregue</th><th>Postado</th><th>Previsão</th><th></th></tr></thead>
             <tbody>
               {filtered.map(v => (
                 <tr key={v.id}>
@@ -221,7 +212,6 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
                     <td key={s.key}><button onClick={() => toggleStage(v.id, s.key)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: v[s.key] ? s.color : 'var(--text-muted)', padding: 0 }}>{v[s.key] ? <CheckSquare size={18} /> : <Square size={18} />}</button></td>
                   ))}
                   <td>{v.planned_date ? new Date(v.planned_date + 'T12:00').toLocaleDateString('pt-BR') : '—'}</td>
-                  <td>{v.actual_date ? new Date(v.actual_date + 'T12:00').toLocaleDateString('pt-BR') : '—'}</td>
                   <td>
                     <div className="flex gap-1">
                       <button className="btn btn-secondary btn-sm" onClick={() => openModal(v)} style={{ padding: '0.2rem 0.4rem' }}><Film size={12} /></button>
@@ -247,10 +237,7 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
                 <div className="form-group"><label>Cliente</label><select className="form-control" value={form.client_id} onChange={e => { const p = packages.filter(x => x.client_id === e.target.value); setForm({ ...form, client_id: e.target.value, package_id: p[0]?.id || '' }); }}><option value="">Selecione...</option>{clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
                 <div className="form-group"><label>Pacote</label><select className="form-control" value={form.package_id} onChange={e => setForm({ ...form, package_id: e.target.value })}><option value="">Selecione...</option>{cpf.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></div>
               </div>
-              <div className="form-row">
-                <div className="form-group"><label>Data Prevista</label><input type="date" className="form-control" value={form.planned_date} onChange={e => setForm({ ...form, planned_date: e.target.value })} /></div>
-                <div className="form-group"><label>Data Real de Postagem</label><input type="date" className="form-control" value={form.actual_date} onChange={e => setForm({ ...form, actual_date: e.target.value })} /></div>
-              </div>
+              <div className="form-group"><label>Data Prevista</label><input type="date" className="form-control" value={form.planned_date} onChange={e => setForm({ ...form, planned_date: e.target.value })} /></div>
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>

@@ -189,6 +189,31 @@ export function useGoogleCalendar() {
     }
   }, [isSignedIn]);
 
+  // Update an existing event on Google Calendar
+  const updateEvent = useCallback(async (eventId, { summary, description, date, timeStart, timeEnd, location }) => {
+    if (!isSignedIn || !eventId) return null;
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const event = {
+        summary,
+        description: description || '',
+        location: location || '',
+        start: { dateTime: `${date}T${timeStart || '09:00'}:00`, timeZone: tz },
+        end:   { dateTime: `${date}T${timeEnd   || '10:00'}:00`, timeZone: tz },
+        colorId: '6',
+      };
+      const response = await window.gapi.client.calendar.events.update({
+        calendarId: 'primary',
+        eventId,
+        resource: event,
+      });
+      return response.result;
+    } catch (err) {
+      console.error('Error updating Google Calendar event:', err);
+      return null;
+    }
+  }, [isSignedIn]);
+
   // Delete an event from Google Calendar
   const deleteEvent = useCallback(async (eventId) => {
     if (!isSignedIn || !eventId) return false;
@@ -201,5 +226,5 @@ export function useGoogleCalendar() {
     }
   }, [isSignedIn]);
 
-  return { ready, isSignedIn, loading, events, signIn, signOut, fetchEvents, createEvent, deleteEvent };
+  return { ready, isSignedIn, loading, events, signIn, signOut, fetchEvents, createEvent, updateEvent, deleteEvent };
 }

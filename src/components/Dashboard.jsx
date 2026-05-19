@@ -20,10 +20,7 @@ export default function Dashboard({ clients, packages, sessions, payments, video
 
   const totalOwed = packages.reduce((sum, p) => sum + Math.max(0, p.value - p.paid), 0);
 
-  const lowPackages = packages.filter(p => {
-    const remaining = p.total_videos - p.delivered;
-    return p.status === 'Ativo' && remaining <= 2;
-  });
+
 
   const isActiveInMonth = (pkg, year, month) => {
     if (!pkg.start_date) return pkg.status === 'Ativo';
@@ -58,13 +55,28 @@ export default function Dashboard({ clients, packages, sessions, payments, video
 
   // Smart alerts
   const alerts = [];
-  lowPackages.forEach(pkg => {
+  let lowPackagesCount = 0;
+  packages.forEach(pkg => {
+    if (pkg.status !== 'Ativo' || pkg.total_videos <= 0) return;
     const client = getClientName(pkg.client_id);
-    const remaining = pkg.total_videos - pkg.delivered;
-    alerts.push({
-      type: remaining <= 1 ? 'urgent' : 'warning',
-      text: `<strong>${client}</strong> tem apenas ${remaining} vídeo${remaining !== 1 ? 's' : ''} restante${remaining !== 1 ? 's' : ''} — agende nova gravação`,
-    });
+    const delivered = pkg.delivered || 0;
+    const total = pkg.total_videos;
+    const remaining = total - delivered;
+    const percent = Math.floor((delivered / total) * 100);
+
+    if (remaining === 0) {
+      alerts.push({
+        type: 'urgent',
+        text: `O pacote de <strong>${client}</strong> foi 100% concluído! (Todos os ${total} vídeos entregues) — hora de renovar.`,
+      });
+      lowPackagesCount++;
+    } else if (remaining <= 2 || percent >= 70) {
+      alerts.push({
+        type: remaining <= 1 ? 'urgent' : 'warning',
+        text: `O pacote de <strong>${client}</strong> está <strong>${percent}% concluído</strong>. Resta${remaining !== 1 ? 'm' : ''} apenas ${remaining} vídeo${remaining !== 1 ? 's' : ''} de ${total}.`,
+      });
+      lowPackagesCount++;
+    }
   });
 
   const pendingPayments = packages.filter(p => p.value > p.paid && p.status === 'Ativo');
@@ -118,13 +130,13 @@ export default function Dashboard({ clients, packages, sessions, payments, video
           </div>
         </div>
         <div className="summary-card">
-          <div className="icon-wrap" style={{ background: lowPackages.length > 0 ? 'rgba(245,158,11,0.15)' : undefined, color: lowPackages.length > 0 ? 'var(--warning)' : undefined }}>
+          <div className="icon-wrap" style={{ background: lowPackagesCount > 0 ? 'rgba(245,158,11,0.15)' : undefined, color: lowPackagesCount > 0 ? 'var(--warning)' : undefined }}>
             <AlertTriangle size={20} />
           </div>
           <div className="info">
             <h4>Pacotes Acabando</h4>
-            <div className="value" style={{ color: lowPackages.length > 0 ? 'var(--warning)' : undefined }}>
-              {lowPackages.length}
+            <div className="value" style={{ color: lowPackagesCount > 0 ? 'var(--warning)' : undefined }}>
+              {lowPackagesCount}
             </div>
           </div>
         </div>

@@ -66,7 +66,7 @@ function AppContent() {
       case 'dashboard':
         return <Dashboard clients={data.clients} packages={data.packages} sessions={data.sessions} payments={data.payments} videos={data.videos} onNavigate={navigate} />;
       case 'calendar':
-        return <Calendar clients={data.clients} sessions={data.sessions} addSession={data.addSession} updateSession={data.updateSession} deleteSession={data.deleteSession} />;
+        return <Calendar clients={data.clients} sessions={data.sessions} addSession={data.addSession} updateSession={data.updateSession} deleteSession={data.deleteSession} addClient={data.addClient} />;
       case 'clients':
         return <Clients clients={data.clients} packages={data.packages} references={data.references} addClient={data.addClient} updateClient={data.updateClient} deleteClient={data.deleteClient} addPackage={data.addPackage} updatePackage={data.updatePackage} addReference={data.addReference} updateReference={data.updateReference} deleteReference={data.deleteReference} />;
       case 'posts':

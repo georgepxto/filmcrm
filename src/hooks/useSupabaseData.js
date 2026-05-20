@@ -37,7 +37,7 @@ export function useSupabaseData() {
       console.error('Error fetching data:', err);
     }
     setLoading(false);
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
     fetchAll();

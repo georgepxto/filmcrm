@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   LayoutDashboard, Users, AlertTriangle, DollarSign,
-  CalendarDays, Clapperboard, TrendingUp, Bell, ChevronRight,
+  CalendarDays, Clapperboard, TrendingUp, Bell, ChevronRight, CheckCircle,
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
@@ -148,8 +148,9 @@ export default function Dashboard({ clients, packages, sessions, payments, video
           {/* Alerts */}
           <h3 className="section-title"><Bell size={18} /> Alertas Inteligentes</h3>
           {alerts.length === 0 ? (
-            <div className="card" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
-              Nenhum alerta no momento ✨
+            <div className="card" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+              <CheckCircle size={20} style={{ color: 'var(--success)', opacity: 0.6 }} />
+              Nenhum alerta no momento
             </div>
           ) : (
             alerts.map((a, i) => (

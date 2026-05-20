@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import {
   Users, Plus, X, Package, Phone, Mail, AlertTriangle,
-  Pause, CheckCircle, Play, Edit, MessageCircle, Link as LinkIcon, Bookmark, Trash2, LayoutGrid, List, Search
+  Pause, CheckCircle, Play, Edit, MessageCircle, Link as LinkIcon, Bookmark, Trash2, LayoutGrid, List, Search,
+  Repeat, Clock, DollarSign, Music, Video, Image as ImageIcon, Globe, ExternalLink
 } from 'lucide-react';
 import { useToast } from './Toast';
 
@@ -29,7 +30,7 @@ export default function Clients({ clients, packages, references, addClient, upda
   const [searchQuery, setSearchQuery] = useState('');
 
   const emptyClient = { name: '', contact: '', email: '' };
-  const emptyPackage = { client_id: '', name: '', total_videos: 4, delivered: 0, posted: 0, status: 'Ativo', value: '', paid: 0, start_date: new Date().toISOString().slice(0, 10), end_date: '', billing_cycle: 'Mensal' };
+  const emptyPackage = { client_id: '', name: '', total_videos: 4, edited: 0, delivered: 0, posted: 0, status: 'Ativo', value: '', paid: 0, start_date: new Date().toISOString().slice(0, 10), end_date: '', billing_cycle: 'Mensal' };
   const emptyRef = { client_id: '', title: '', url: '', notes: '' };
   const [clientForm, setClientForm] = useState(emptyClient);
   const [pkgForm, setPkgForm] = useState(emptyPackage);
@@ -85,6 +86,7 @@ export default function Clients({ clients, packages, references, addClient, upda
     const data = {
       ...pkgForm,
       total_videos: Number(pkgForm.total_videos),
+      edited: Number(pkgForm.edited) || 0,
       delivered: Number(pkgForm.delivered),
       posted: Number(pkgForm.posted),
       value: Number(pkgForm.value),
@@ -253,10 +255,16 @@ export default function Clients({ clients, packages, references, addClient, upda
                             <span className={`badge badge-${getStatusBadge(pkg.status)}`} style={{ marginLeft: '0.5rem' }}>
                               {getStatusIcon(pkg.status)} {pkg.status}
                             </span>
-                            <div style={{ marginTop: '0.2rem', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                              <span style={{ marginRight: '0.5rem' }}>🔄 {pkg.billing_cycle || 'Mensal'}</span>
-                              <span style={{ marginRight: '0.5rem' }}>⏳ {pkg.end_date ? `Até ${new Date(pkg.end_date + 'T12:00').toLocaleDateString('pt-BR')}` : 'Contínuo'}</span>
-                              <span>💰 R$ {Number(pkg.value || 0).toLocaleString('pt-BR')} / ciclo</span>
+                            <div style={{ marginTop: '0.2rem', fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', marginRight: '0.5rem' }}>
+                                <Repeat size={11} /> {pkg.billing_cycle || 'Mensal'}
+                              </span>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', marginRight: '0.5rem' }}>
+                                <Clock size={11} /> {pkg.end_date ? `Até ${new Date(pkg.end_date + 'T12:00').toLocaleDateString('pt-BR')}` : 'Contínuo'}
+                              </span>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                                <DollarSign size={11} /> R$ {Number(pkg.value || 0).toLocaleString('pt-BR')} / ciclo
+                              </span>
                             </div>
                           </div>
                           <button className="btn btn-secondary btn-sm" onClick={() => openPkgModal(c.id, pkg)} style={{ padding: '0.25rem 0.5rem', fontSize: '0.72rem' }}>
@@ -271,10 +279,14 @@ export default function Clients({ clients, packages, references, addClient, upda
                           </div>
                         )}
 
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '0.5rem', marginTop: '0.75rem', fontSize: '0.72rem' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: '0.5rem', marginTop: '0.75rem', fontSize: '0.72rem' }}>
                           <div>
                             <div className="text-muted">Total</div>
                             <div style={{ fontWeight: 600, fontSize: '1rem' }}>{pkg.total_videos}</div>
+                          </div>
+                          <div>
+                            <div className="text-muted">Editados</div>
+                            <div style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--info)' }}>{pkg.edited || 0}</div>
                           </div>
                           <div>
                             <div className="text-muted">Entregues</div>
@@ -319,21 +331,81 @@ export default function Clients({ clients, packages, references, addClient, upda
                 {references.filter(r => r.client_id === c.id).length === 0 ? (
                   <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>Nenhuma referência salva</p>
                 ) : (
-                  <div style={{ display: 'grid', gap: '0.5rem', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
-                    {references.filter(r => r.client_id === c.id).map(ref => (
-                      <div key={ref.id} className="card" style={{ padding: '0.75rem', position: 'relative' }}>
-                        <h4 style={{ fontSize: '0.85rem', marginBottom: '0.2rem', paddingRight: '1rem' }}>{ref.title}</h4>
-                        <a href={ref.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.7rem', color: 'var(--info)', display: 'flex', alignItems: 'center', gap: '0.25rem', textDecoration: 'none', marginBottom: '0.5rem' }}>
-                          <LinkIcon size={10} /> Abrir Link
-                        </a>
-                        {ref.notes && <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0' }}>{ref.notes}</p>}
-                        
-                        <div style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', display: 'flex', gap: '0.2rem' }}>
-                          <button onClick={() => openRefModal(c.id, ref)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><Edit size={12} /></button>
-                          <button onClick={() => handleDeleteRef(ref.id)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}><Trash2 size={12} /></button>
+                  <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
+                    {references.filter(r => r.client_id === c.id).map(ref => {
+                      const getPlatformInfo = (url) => {
+                        if (!url) return { name: 'Web', icon: Globe, color: 'var(--text-muted)' };
+                        try {
+                          const hostname = new URL(url).hostname;
+                          if (hostname.includes('youtube') || hostname.includes('youtu.be')) return { name: 'YouTube', icon: Video, color: '#ef4444' };
+                          if (hostname.includes('instagram')) return { name: 'Instagram', icon: ImageIcon, color: '#ec4899' };
+                          if (hostname.includes('tiktok')) return { name: 'TikTok', icon: Music, color: '#00f2fe' };
+                          if (hostname.includes('vimeo')) return { name: 'Vimeo', icon: Video, color: '#3b82f6' };
+                          if (hostname.includes('pinterest')) return { name: 'Pinterest', icon: ImageIcon, color: '#e11d48' };
+                          return { name: hostname.replace('www.', ''), icon: Globe, color: 'var(--info)' };
+                        } catch (e) {
+                          return { name: 'Link', icon: Globe, color: 'var(--info)' };
+                        }
+                      };
+                      
+                      const platform = getPlatformInfo(ref.url);
+                      const PlatformIcon = platform.icon;
+
+                      return (
+                        <div 
+                          key={ref.id} 
+                          className="card moodboard-card" 
+                          style={{ 
+                            padding: '1.25rem', 
+                            position: 'relative', 
+                            overflow: 'hidden',
+                            border: '1px solid rgba(255,255,255,0.05)',
+                            background: `linear-gradient(145deg, rgba(20,20,20,0.8) 0%, rgba(10,10,10,0.95) 100%)`,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.75rem',
+                            cursor: 'pointer'
+                          }}
+                          onClick={() => window.open(ref.url, '_blank')}
+                        >
+                          <div style={{ 
+                            position: 'absolute', top: '-20%', right: '-10%', 
+                            width: '100px', height: '100px', 
+                            background: platform.color, opacity: 0.15, 
+                            filter: 'blur(30px)', borderRadius: '50%',
+                            transition: 'all 0.3s ease'
+                          }} className="glow-effect" />
+                          
+                          <div style={{ 
+                            position: 'absolute', bottom: '-10%', right: '-5%', 
+                            opacity: 0.03, transform: 'rotate(-15deg)', pointerEvents: 'none' 
+                          }}>
+                            <PlatformIcon size={120} color={platform.color} />
+                          </div>
+
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', zIndex: 1 }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.25rem 0.5rem', background: 'rgba(255,255,255,0.05)', borderRadius: '20px', fontSize: '0.65rem', fontWeight: 600, color: platform.color, border: `1px solid ${platform.color}33` }}>
+                              <PlatformIcon size={10} /> {platform.name}
+                            </div>
+                            
+                            <div style={{ display: 'flex', gap: '0.3rem' }} onClick={e => e.stopPropagation()}>
+                              <button onClick={() => openRefModal(c.id, ref)} className="btn-icon" style={{ color: 'var(--text-muted)' }}><Edit size={12} /></button>
+                              <button onClick={() => handleDeleteRef(ref.id)} className="btn-icon" style={{ color: 'var(--danger)' }}><Trash2 size={12} /></button>
+                            </div>
+                          </div>
+                          
+                          <div style={{ zIndex: 1, flex: 1, display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.5rem' }}>
+                            <h4 style={{ fontSize: '0.95rem', margin: 0, fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.3 }}>{ref.title}</h4>
+                            {ref.notes && <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.4, opacity: 0.8, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{ref.notes}</p>}
+                          </div>
+
+                          <div style={{ zIndex: 1, marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 500 }}>Acessar Referência</span>
+                            <ExternalLink size={12} style={{ color: 'var(--text-muted)' }} className="link-arrow" />
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -541,7 +613,9 @@ export default function Clients({ clients, packages, references, addClient, upda
                 {/* Section 3: Valor */}
                 <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '1rem', marginBottom: '1rem' }}>
                   <div className="form-group" style={{ marginBottom: '0.5rem' }}>
-                    <label>💰 Valor por Ciclo ({pkgForm.billing_cycle || 'Mensal'}) (R$)</label>
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                      <DollarSign size={13} /> Valor por Ciclo ({pkgForm.billing_cycle || 'Mensal'}) (R$)
+                    </label>
                     <input
                       type="number"
                       className="form-control"
@@ -569,6 +643,10 @@ export default function Clients({ clients, packages, references, addClient, upda
                       Progresso & Status
                     </p>
                     <div className="form-row">
+                      <div className="form-group">
+                        <label>Editados</label>
+                        <input type="number" className="form-control" min="0" max={totalVids} value={pkgForm.edited || 0} onChange={e => setPkgForm({ ...pkgForm, edited: e.target.value })} />
+                      </div>
                       <div className="form-group">
                         <label>Entregues</label>
                         <input type="number" className="form-control" min="0" max={totalVids} value={pkgForm.delivered} onChange={e => setPkgForm({ ...pkgForm, delivered: e.target.value })} />

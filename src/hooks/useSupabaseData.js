@@ -162,10 +162,22 @@ export function useSupabaseData() {
       .single();
     if (error) { console.error('addVideo error:', error); return null; }
     setVideos(prev => [data, ...prev]);
+
+    // Sync package counters if the video is created already edited, delivered or posted
+    if (data.package_id && (data.edited || data.delivered || data.posted)) {
+      const pkg = packages.find(p => p.id === data.package_id);
+      if (pkg) {
+        const newEdited = (pkg.edited || 0) + (data.edited ? 1 : 0);
+        const newDelivered = (pkg.delivered || 0) + (data.delivered ? 1 : 0);
+        const newPosted = (pkg.posted || 0) + (data.posted ? 1 : 0);
+        await updatePackage(data.package_id, { edited: newEdited, delivered: newDelivered, posted: newPosted });
+      }
+    }
     return data;
   };
 
   const updateVideo = async (id, updates) => {
+    const oldVideo = videos.find(v => v.id === id);
     const { data, error } = await supabase
       .from('videos')
       .update(updates)
@@ -175,10 +187,30 @@ export function useSupabaseData() {
       .single();
     if (error) { console.error('updateVideo error:', error); return null; }
     setVideos(prev => prev.map(v => v.id === id ? data : v));
+
+    // Sync package counters if flags changed
+    if (oldVideo && data.package_id) {
+      const editedChanged = oldVideo.edited !== data.edited;
+      const deliveredChanged = oldVideo.delivered !== data.delivered;
+      const postedChanged = oldVideo.posted !== data.posted;
+      if (editedChanged || deliveredChanged || postedChanged) {
+        const pkg = packages.find(p => p.id === data.package_id);
+        if (pkg) {
+          const newEdited = Math.max(0, (pkg.edited || 0) + (editedChanged ? (data.edited ? 1 : -1) : 0));
+          const newDelivered = Math.max(0, (pkg.delivered || 0) + (deliveredChanged ? (data.delivered ? 1 : -1) : 0));
+          const newPosted = Math.max(0, (pkg.posted || 0) + (postedChanged ? (data.posted ? 1 : -1) : 0));
+          const res = await updatePackage(data.package_id, { edited: newEdited, delivered: newDelivered, posted: newPosted });
+          if (!res) {
+            alert('Atenção: A coluna "edited" ainda não foi criada no banco de dados! Rode o SQL no Supabase para os Pacotes atualizarem.');
+          }
+        }
+      }
+    }
     return data;
   };
 
   const deleteVideo = async (id) => {
+    const video = videos.find(v => v.id === id);
     const { error } = await supabase
       .from('videos')
       .delete()
@@ -186,6 +218,17 @@ export function useSupabaseData() {
       .eq('user_id', user.id);
     if (error) { console.error('deleteVideo error:', error); return false; }
     setVideos(prev => prev.filter(v => v.id !== id));
+
+    // Sync package counters if a completed video was deleted
+    if (video && video.package_id && (video.edited || video.delivered || video.posted)) {
+      const pkg = packages.find(p => p.id === video.package_id);
+      if (pkg) {
+        const newEdited = Math.max(0, (pkg.edited || 0) - (video.edited ? 1 : 0));
+        const newDelivered = Math.max(0, (pkg.delivered || 0) - (video.delivered ? 1 : 0));
+        const newPosted = Math.max(0, (pkg.posted || 0) - (video.posted ? 1 : 0));
+        await updatePackage(video.package_id, { edited: newEdited, delivered: newDelivered, posted: newPosted });
+      }
+    }
     return true;
   };
 

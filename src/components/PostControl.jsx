@@ -34,7 +34,8 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
   const getStage = (v) => {
     if (v.posted) return 'posted';
     if (v.delivered) return 'delivered';
-    return 'edited';
+    if (v.edited) return 'edited';
+    return 'edited'; // Fallback to 'edited' since it's the first column
   };
 
   // ── Drag & Drop handlers ──

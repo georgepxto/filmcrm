@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  LayoutDashboard, CalendarDays, Users, Film, DollarSign,
+  LayoutDashboard, CalendarDays, Users, Film, DollarSign, Package,
   Menu, X, Clapperboard, LogOut, Loader,
 } from 'lucide-react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -12,11 +12,13 @@ import Calendar from './components/Calendar';
 import Clients from './components/Clients';
 import PostControl from './components/PostControl';
 import Payments from './components/Payments';
+import Packages from './components/Packages';
 
 const NAV_ITEMS = [
   { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { key: 'calendar', label: 'Calendário', icon: CalendarDays },
   { key: 'clients', label: 'Clientes & Pacotes', icon: Users },
+  { key: 'packages', label: 'Pacotes', icon: Package },
   { key: 'posts', label: 'Postagens', icon: Film },
   { key: 'payments', label: 'Pagamentos', icon: DollarSign },
 ];
@@ -69,6 +71,8 @@ function AppContent() {
         return <Calendar clients={data.clients} sessions={data.sessions} addSession={data.addSession} updateSession={data.updateSession} deleteSession={data.deleteSession} addClient={data.addClient} />;
       case 'clients':
         return <Clients clients={data.clients} packages={data.packages} references={data.references} addClient={data.addClient} updateClient={data.updateClient} deleteClient={data.deleteClient} addPackage={data.addPackage} updatePackage={data.updatePackage} addReference={data.addReference} updateReference={data.updateReference} deleteReference={data.deleteReference} />;
+      case 'packages':
+        return <Packages clients={data.clients} packages={data.packages} payments={data.payments} videos={data.videos} updatePackage={data.updatePackage} addPackage={data.addPackage} />;
       case 'posts':
         return <PostControl clients={data.clients} videos={data.videos} packages={data.packages} addVideo={data.addVideo} updateVideo={data.updateVideo} deleteVideo={data.deleteVideo} />;
       case 'payments':

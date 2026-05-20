@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const SCOPES = 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly';
@@ -15,6 +16,7 @@ const REFRESH_MARGIN_MS = 5 * 60 * 1000; // Refresh 5 min before expiry
  * Filters out CRM-created events to avoid duplication.
  */
 export function useGoogleCalendar() {
+  const { user } = useAuth(); // Wait for Supabase auth to be ready
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [gapiReady, setGapiReady] = useState(false);
   const [gisReady, setGisReady] = useState(false);
@@ -125,8 +127,9 @@ export function useGoogleCalendar() {
   }, [applyToken, clearAuth]);
 
   // Restore saved token on page load or fetch from backend
+  // Depends on BOTH gapiReady AND user being authenticated — avoids race condition
   useEffect(() => {
-    if (!gapiReady || restoredRef.current) return;
+    if (!gapiReady || !user || restoredRef.current) return;
     restoredRef.current = true;
 
     const attemptRestore = async () => {
@@ -145,6 +148,7 @@ export function useGoogleCalendar() {
       }
 
       // Token expired or missing — ask backend for a fresh one using refresh_token
+      // The supabase client automatically sends the user's JWT in the Authorization header
       const { data, error } = await supabase.functions.invoke('google-calendar', {
         body: { action: 'get_token' }
       });
@@ -159,7 +163,15 @@ export function useGoogleCalendar() {
     };
 
     attemptRestore();
-  }, [gapiReady, clearAuth, applyToken, scheduleRefresh]);
+  }, [gapiReady, user, clearAuth, applyToken, scheduleRefresh]);
+
+  // Reset restoredRef if user changes (e.g. sign out + sign in as different account)
+  useEffect(() => {
+    if (!user) {
+      restoredRef.current = false;
+      clearAuth();
+    }
+  }, [user, clearAuth]);
 
   const ready = gapiReady && gisReady && !!CLIENT_ID;
 

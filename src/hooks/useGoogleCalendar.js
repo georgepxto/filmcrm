@@ -181,11 +181,15 @@ export function useGoogleCalendar() {
     tokenClientRef.current.requestCode();
   }, []);
 
-  // Sign out and clear
-  const signOut = useCallback(() => {
+  // Sign out: revoke access token AND delete refresh_token from DB
+  const signOut = useCallback(async () => {
     if (accessTokenRef.current) {
-      window.google.accounts.oauth2.revoke(accessTokenRef.current, () => {});
+      try { window.google.accounts.oauth2.revoke(accessTokenRef.current, () => {}); } catch (_) {}
     }
+    // Remove the refresh_token from DB so next connect always gets a fresh one
+    try {
+      await supabase.functions.invoke('google-calendar', { body: { action: 'revoke' } });
+    } catch (_) {}
     clearAuth();
   }, [clearAuth]);
 

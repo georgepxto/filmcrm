@@ -7,7 +7,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -25,20 +24,16 @@ serve(async (req) => {
 
     const token = authHeader.replace("Bearer ", "");
 
-    // Admin client to verify token and write to database
+    // Admin client bypasses RLS — required to read/write google_tokens
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // Get the user from the auth token directly
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
 
     if (userError || !user) {
-      return new Response(JSON.stringify({ error: "Invalid token", details: userError }), {
+      return new Response(JSON.stringify({ error: "Invalid token", details: String(userError) }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -52,8 +47,8 @@ serve(async (req) => {
       throw new Error("Missing Google OAuth credentials in environment variables.");
     }
 
+    // ── EXCHANGE CODE ──────────────────────────────────────────────────────────
     if (action === "exchange_code") {
-      // Exchange auth code for refresh token
       const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -74,50 +69,58 @@ serve(async (req) => {
 
       const { access_token, refresh_token, expires_in } = tokenData;
 
-      if (!refresh_token) {
-        // If we didn't get a refresh token, it means the user already granted permission before.
-        // They need to revoke permission or we need to pass prompt='consent'
-        // Let's check if we already have one in the DB
-        const { data: existing } = await supabaseAdmin
+      if (refresh_token) {
+        // Save refresh_token — surface any DB error (table might not exist)
+        const { error: upsertError } = await supabaseAdmin.from("google_tokens").upsert({
+          user_id: user.id,
+          refresh_token,
+          updated_at: new Date().toISOString(),
+        });
+
+        if (upsertError) {
+          throw new Error(`DB error saving refresh_token: ${upsertError.message}. Make sure the google_tokens table exists (run migration_google_oauth.sql).`);
+        }
+
+        console.log(`[google-calendar] Saved refresh_token for user ${user.id}`);
+      } else {
+        // No refresh_token from Google — check if we already have one stored
+        const { data: existing, error: selectError } = await supabaseAdmin
           .from("google_tokens")
           .select("refresh_token")
           .eq("user_id", user.id)
           .single();
 
-        if (!existing?.refresh_token) {
-          throw new Error("No refresh token received. User needs to re-authorize with prompt='consent'.");
+        if (selectError || !existing?.refresh_token) {
+          throw new Error(
+            "Google did not return a refresh_token and none is stored in DB. " +
+            "Disconnect and reconnect to force a new consent screen."
+          );
         }
-      } else {
-        // Save the new refresh token
-        await supabaseAdmin.from("google_tokens").upsert({
-          user_id: user.id,
-          refresh_token,
-          updated_at: new Date().toISOString(),
-        });
+
+        console.log(`[google-calendar] Reusing existing refresh_token for user ${user.id}`);
       }
 
       return new Response(
         JSON.stringify({ access_token, expires_in }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
-    } 
-    
+    }
+
+    // ── GET TOKEN (silent refresh) ─────────────────────────────────────────────
     if (action === "get_token") {
-      // Get the saved refresh token
-      const { data: savedToken } = await supabaseAdmin
+      const { data: savedToken, error: selectError } = await supabaseAdmin
         .from("google_tokens")
         .select("refresh_token")
         .eq("user_id", user.id)
         .single();
 
-      if (!savedToken?.refresh_token) {
-        return new Response(JSON.stringify({ error: "No refresh token found" }), {
+      if (selectError || !savedToken?.refresh_token) {
+        return new Response(JSON.stringify({ error: "No refresh token found. User must reconnect." }), {
           status: 404,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      // Use refresh token to get new access token
       const refreshResponse = await fetch("https://oauth2.googleapis.com/token", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -132,9 +135,9 @@ serve(async (req) => {
       const refreshData = await refreshResponse.json();
 
       if (refreshData.error) {
-        // Refresh token might be revoked
+        console.error(`[google-calendar] Refresh rejected for user ${user.id}: ${refreshData.error}`);
         await supabaseAdmin.from("google_tokens").delete().eq("user_id", user.id);
-        return new Response(JSON.stringify({ error: "Refresh token expired or revoked" }), {
+        return new Response(JSON.stringify({ error: "Refresh token revoked. User must reconnect." }), {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -146,11 +149,20 @@ serve(async (req) => {
       );
     }
 
-    throw new Error("Invalid action");
+    // ── REVOKE (sign out) ──────────────────────────────────────────────────────
+    if (action === "revoke") {
+      await supabaseAdmin.from("google_tokens").delete().eq("user_id", user.id);
+      console.log(`[google-calendar] Deleted token for user ${user.id}`);
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    throw new Error(`Invalid action: ${action}`);
 
   } catch (err) {
-    console.error(err);
-    return new Response(JSON.stringify({ error: err.message }), {
+    console.error("[google-calendar] Error:", (err as Error).message);
+    return new Response(JSON.stringify({ error: (err as Error).message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

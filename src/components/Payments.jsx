@@ -122,7 +122,7 @@ export default function Payments({ clients, packages, payments, addPayment, dele
     <div className="fade-in">
       <div className="page-header">
         <h2><DollarSign size={24} /> Gestão de Pagamentos</h2>
-        <select className="form-control" style={{ minWidth: 180 }} value={filterClient} onChange={e => setFilterClient(e.target.value)}>
+        <select className="form-control" style={{ minWidth: 180, width: 'auto', maxWidth: 320 }} value={filterClient} onChange={e => setFilterClient(e.target.value)}>
           <option value="">Todos os clientes</option>
           {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>

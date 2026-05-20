@@ -286,11 +286,11 @@ export default function Calendar({ clients, sessions, addSession, updateSession,
         })
     : [];
 
-  // Count unique clients per day
-  const getDayClientCount = (dateStr) => {
-    const daySessionsList = filtered.filter(s => isDateBetween(dateStr, s.date, s.date_end));
-    const uniqueClients = new Set(daySessionsList.map(s => s.client_id));
-    return uniqueClients.size;
+  // Count total events per day (CRM + Google Calendar)
+  const getDayEventCount = (dateStr) => {
+    const crmCount = filtered.filter(s => isDateBetween(dateStr, s.date, s.date_end)).length;
+    const googleCount = googleEventsByDate[dateStr]?.length || 0;
+    return crmCount + googleCount;
   };
 
   return (
@@ -371,7 +371,8 @@ export default function Calendar({ clients, sessions, addSession, updateSession,
           }) : [];
           const totalEvents = crmEvents.length + gEvents.length;
           const isToday = currentDayStr === todayStr;
-          const clientCount = cell.current ? getDayClientCount(currentDayStr) : 0;
+          const eventCount = cell.current ? getDayEventCount(currentDayStr) : 0;
+          const visibleCount = Math.min(crmEvents.length, 2) + Math.min(gEvents.length, crmEvents.length >= 2 ? 1 : 2);
           return (
             <div
               key={i}
@@ -380,9 +381,9 @@ export default function Calendar({ clients, sessions, addSession, updateSession,
             >
               <div className="day-number">
                 {cell.day}
-                {clientCount > 1 && (
-                  <span className="day-client-count" title={`${clientCount} clientes`}>
-                    {clientCount}
+                {eventCount > 1 && (
+                  <span className="day-client-count" title={`${eventCount} eventos`}>
+                    {eventCount}
                   </span>
                 )}
               </div>
@@ -410,10 +411,17 @@ export default function Calendar({ clients, sessions, addSession, updateSession,
                   minHeight: '20px'
                 } : {};
 
+                // normalize status to match CSS classes (use english class names for calendar-event)
+                const statusLower = (ev.status || '').toLowerCase();
+                let statusClass = statusLower;
+                if (statusLower === 'pendente') statusClass = 'pending';
+                else if (statusLower === 'confirmado') statusClass = 'confirmed';
+                else if (statusLower === 'concluído' || statusLower === 'concluido') statusClass = 'completed';
+
                 return (
                   <div 
                     key={ev.id} 
-                    className={`calendar-event ${(ev.status || '').toLowerCase()}`} 
+                    className={`calendar-event ${statusClass}`} 
                     style={allDayStyle}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -439,9 +447,9 @@ export default function Calendar({ clients, sessions, addSession, updateSession,
                   {(gev.start?.dateTime || '').slice(11, 16) || '○'} {(gev.summary || '').slice(0, 12)}
                 </div>
               ))}
-              {totalEvents > 3 && (
+              {totalEvents > visibleCount && (
                 <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', paddingLeft: '0.35rem' }}>
-                  +{totalEvents - 3} mais
+                  +{totalEvents - visibleCount} mais
                 </div>
               )}
             </div>

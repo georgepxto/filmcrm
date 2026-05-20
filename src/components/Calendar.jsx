@@ -106,7 +106,11 @@ export default function Calendar({ clients, sessions, addSession, updateSession,
     ? sessions.filter(s => s.client_id === filterClient)
     : sessions;
 
-  const getClientName = (id) => clients.find(c => c.id === id)?.name || 'Desconhecido';
+  const getClientName = (id) => {
+    const name = clients.find(c => c.id === id)?.name;
+    if (!name) return 'Desconhecido';
+    return name.trim().split(/\s+/).slice(0, 2).join(' ');
+  };
   const getClientPhone = (id) => clients.find(c => c.id === id)?.contact || '';
 
   const openDay = (day, isCurrent) => {
@@ -407,13 +411,25 @@ export default function Calendar({ clients, sessions, addSession, updateSession,
                 } : {};
 
                 return (
-                  <div key={ev.id} className={`calendar-event ${(ev.status || '').toLowerCase()}`} style={allDayStyle}>
+                  <div 
+                    key={ev.id} 
+                    className={`calendar-event ${(ev.status || '').toLowerCase()}`} 
+                    style={allDayStyle}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (cell.current) {
+                        setSelectedDay(cell.day);
+                        setShowModal(true);
+                        editSess(ev);
+                      }
+                    }}
+                  >
                     {ev.is_all_day 
                       ? (showText 
-                          ? `Dia todo ${getEventTitle(ev).split(' ')[0]}` 
-                          : <span style={{ opacity: 0 }}>{`Dia todo ${getEventTitle(ev).split(' ')[0]}`}</span>
+                          ? `Dia todo ${getEventTitle(ev)}` 
+                          : <span style={{ opacity: 0 }}>{`Dia todo ${getEventTitle(ev)}`}</span>
                         ) 
-                      : `${(ev.time_start || ev.time || '—').slice(0, 5)} ${getEventTitle(ev).split(' ')[0]}`
+                      : `${(ev.time_start || ev.time || '—').slice(0, 5)} ${getEventTitle(ev)}`
                     }
                   </div>
                 );

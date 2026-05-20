@@ -191,8 +191,8 @@ export default function Dashboard({ clients, packages, sessions, payments, video
                           {new Date(s.date + 'T12:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
                         </td>
                         <td>
-                          {s.time_start || s.time || '—'}
-                          {s.time_end && ` — ${s.time_end}`}
+                          {(s.time_start || s.time || '').slice(0, 5) || '—'}
+                          {s.time_end && ` — ${s.time_end.slice(0, 5)}`}
                         </td>
                         <td style={{ color: 'var(--text-primary)' }}>{getClientName(s.client_id)}</td>
                         <td>{s.service}</td>

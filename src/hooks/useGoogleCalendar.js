@@ -6,10 +6,12 @@ const SCOPES = 'https://www.googleapis.com/auth/calendar.events https://www.goog
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
 const LS_TOKEN_KEY = 'filmcrm_gcal_token';
 const LS_EXPIRY_KEY = 'filmcrm_gcal_expiry';
+const REFRESH_MARGIN_MS = 5 * 60 * 1000; // Refresh 5 min before expiry
 
 /**
  * Hook for Google Calendar integration.
  * Stores the access token in localStorage to survive page reloads.
+ * Uses a background refresh timer so the user is never disconnected mid-session.
  * Filters out CRM-created events to avoid duplication.
  */
 export function useGoogleCalendar() {
@@ -21,6 +23,23 @@ export function useGoogleCalendar() {
   const tokenClientRef = useRef(null);
   const accessTokenRef = useRef(null);
   const restoredRef = useRef(false);
+  const refreshTimerRef = useRef(null);
+
+  // Schedule a silent background refresh before the token expires
+  const scheduleRefresh = useCallback((expiresInSec) => {
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    const delay = Math.max(0, expiresInSec * 1000 - REFRESH_MARGIN_MS);
+    refreshTimerRef.current = setTimeout(async () => {
+      const { data } = await supabase.functions.invoke('google-calendar', {
+        body: { action: 'get_token' }
+      });
+      if (data?.access_token) {
+        applyToken(data.access_token, data.expires_in);
+      } else {
+        clearAuth();
+      }
+    }, delay);
+  }, []);
 
   // Apply token to GAPI and persist
   const applyToken = useCallback((token, expiresInSec) => {
@@ -33,13 +52,15 @@ export function useGoogleCalendar() {
     if (expiresInSec) {
       const expiryMs = Date.now() + expiresInSec * 1000;
       localStorage.setItem(LS_EXPIRY_KEY, String(expiryMs));
+      scheduleRefresh(expiresInSec);
     }
-  }, []);
+  }, [scheduleRefresh]);
 
   const clearAuth = useCallback(() => {
     accessTokenRef.current = null;
     localStorage.removeItem(LS_TOKEN_KEY);
     localStorage.removeItem(LS_EXPIRY_KEY);
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
     setIsSignedIn(false);
     setEvents([]);
     try { window.gapi?.client?.setToken(null); } catch (_) {}
@@ -73,6 +94,7 @@ export function useGoogleCalendar() {
         client_id: CLIENT_ID,
         scope: SCOPES,
         access_type: 'offline',
+        prompt: 'consent',           // Always force consent so Google always returns refresh_token
         callback: async (response) => {
           if (response.error) {
             console.error('Google OAuth error:', response);
@@ -110,20 +132,25 @@ export function useGoogleCalendar() {
     const attemptRestore = async () => {
       const savedToken = localStorage.getItem(LS_TOKEN_KEY);
       const savedExpiry = localStorage.getItem(LS_EXPIRY_KEY);
+      const timeLeft = savedExpiry ? Number(savedExpiry) - Date.now() : 0;
 
-      if (savedToken && savedExpiry && Date.now() < Number(savedExpiry) - 60000) {
+      // If token is still valid for more than 1 min, use it and schedule refresh
+      if (savedToken && timeLeft > 60000) {
         accessTokenRef.current = savedToken;
         window.gapi.client.setToken({ access_token: savedToken });
         setIsSignedIn(true);
+        // Schedule refresh based on remaining time
+        scheduleRefresh(Math.floor(timeLeft / 1000));
         return;
       }
 
-      // Token expired or missing locally, ask backend for a fresh one
+      // Token expired or missing — ask backend for a fresh one using refresh_token
       const { data, error } = await supabase.functions.invoke('google-calendar', {
         body: { action: 'get_token' }
       });
 
       if (error || !data?.access_token) {
+        // No refresh token on server either — user must reconnect manually
         clearAuth();
         return;
       }
@@ -132,14 +159,14 @@ export function useGoogleCalendar() {
     };
 
     attemptRestore();
-  }, [gapiReady, clearAuth, applyToken]);
+  }, [gapiReady, clearAuth, applyToken, scheduleRefresh]);
 
   const ready = gapiReady && gisReady && !!CLIENT_ID;
 
-  // Manual sign in
+  // Manual sign in — always request fresh consent to guarantee refresh_token
   const signIn = useCallback(() => {
     if (!tokenClientRef.current) return;
-    tokenClientRef.current.requestCode({ prompt: 'consent' });
+    tokenClientRef.current.requestCode();
   }, []);
 
   // Sign out and clear

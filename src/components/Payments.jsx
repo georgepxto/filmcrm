@@ -4,8 +4,11 @@ import {
 } from 'lucide-react';
 import { useToast } from './Toast';
 import ConfirmModal from './ConfirmModal';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Payments({ clients, packages, payments, addPayment, deletePayment }) {
+  const { user } = useAuth();
+  const cSym = user?.user_metadata?.currency === 'USD' ? '$' : user?.user_metadata?.currency === 'EUR' ? '€' : 'R$';
   const toast = useToast();
   const [filterClient, setFilterClient] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -86,7 +89,7 @@ export default function Payments({ clients, packages, payments, addPayment, dele
     const owed = selectedPkg ? Math.max(0, selectedPkg.value - selectedPkg.paid) : 0;
     if (!amount || amount <= 0) return;
     if (amount > owed) {
-      toast.error(`Valor excede o saldo devedor (R$ ${owed.toLocaleString('pt-BR')})`);
+      toast.error(`Valor excede o saldo devedor (${cSym} ${owed.toLocaleString('pt-BR')})`);
       return;
     }
     setSaving(true);
@@ -100,7 +103,7 @@ export default function Payments({ clients, packages, payments, addPayment, dele
     setSaving(false);
     setShowModal(false);
     if (result) {
-      toast.success(`Pagamento de R$ ${amount.toLocaleString('pt-BR')} registrado`);
+      toast.success(`Pagamento de ${cSym} ${amount.toLocaleString('pt-BR')} registrado`);
     } else {
       toast.error('Erro ao registrar pagamento');
     }
@@ -112,7 +115,7 @@ export default function Payments({ clients, packages, payments, addPayment, dele
     setConfirmUndo(null);
     const result = await deletePayment(pay.id);
     if (result) {
-      toast.success(`Pagamento de R$ ${pay.amount.toLocaleString('pt-BR')} desfeito`);
+      toast.success(`Pagamento de ${cSym} ${pay.amount.toLocaleString('pt-BR')} desfeito`);
     } else {
       toast.error('Erro ao desfazer pagamento');
     }
@@ -142,15 +145,15 @@ export default function Payments({ clients, packages, payments, addPayment, dele
       <div className="summary-cards" style={{ marginBottom: '2rem' }}>
         <div className="summary-card">
           <div className="icon-wrap" style={{ background: 'rgba(52,211,153,0.15)', color: 'var(--success)' }}><CheckCircle size={20} /></div>
-          <div className="info"><h4>Recebido no Mês</h4><div className="value" style={{ color: 'var(--success)' }}>R$ {monthReceived.toLocaleString('pt-BR')}</div></div>
+          <div className="info"><h4>Recebido no Mês</h4><div className="value" style={{ color: 'var(--success)' }}>{cSym} {monthReceived.toLocaleString('pt-BR')}</div></div>
         </div>
         <div className="summary-card">
           <div className="icon-wrap" style={{ background: 'rgba(96,165,250,0.15)', color: 'var(--info)' }}><CreditCard size={20} /></div>
-          <div className="info"><h4>Previsto/Mês</h4><div className="value" style={{ color: 'var(--info)' }}>R$ {monthlyExpected.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</div></div>
+          <div className="info"><h4>Previsto/Mês</h4><div className="value" style={{ color: 'var(--info)' }}>{cSym} {monthlyExpected.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</div></div>
         </div>
         <div className="summary-card">
           <div className="icon-wrap" style={{ background: totalOwed > 0 ? 'rgba(239,68,68,0.15)' : 'rgba(52,211,153,0.15)', color: totalOwed > 0 ? 'var(--danger)' : 'var(--success)' }}><AlertCircle size={20} /></div>
-          <div className="info"><h4>A Receber (Contratos Ativos)</h4><div className="value" style={{ color: totalOwed > 0 ? 'var(--danger)' : 'var(--success)' }}>R$ {totalOwed.toLocaleString('pt-BR')}</div></div>
+          <div className="info"><h4>A Receber (Contratos Ativos)</h4><div className="value" style={{ color: totalOwed > 0 ? 'var(--danger)' : 'var(--success)' }}>{cSym} {totalOwed.toLocaleString('pt-BR')}</div></div>
         </div>
       </div>
 
@@ -171,7 +174,7 @@ export default function Payments({ clients, packages, payments, addPayment, dele
                     {pkg.name}
                     {(pkg.duration_months || 1) > 1 && (
                       <span style={{ marginLeft: '0.5rem', background: 'rgba(212,135,10,0.12)', color: 'var(--amber)', padding: '0.1rem 0.4rem', borderRadius: 4, fontSize: '0.65rem', fontWeight: 600 }}>
-                        {pkg.duration_months} meses · R$ {(pkg.value / (pkg.duration_months || 1)).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}/mês
+                        {pkg.duration_months} meses · {cSym} {(pkg.value / (pkg.duration_months || 1)).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}/mês
                       </span>
                     )}
                   </p>
@@ -183,9 +186,9 @@ export default function Payments({ clients, packages, payments, addPayment, dele
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem', margin: '0.75rem 0', fontSize: '0.78rem' }}>
-                <div><div className="text-muted" style={{ fontSize: '0.68rem' }}>Valor Total</div><div style={{ fontWeight: 600 }}>R$ {pkg.value.toLocaleString('pt-BR')}</div></div>
-                <div><div className="text-muted" style={{ fontSize: '0.68rem' }}>Pago</div><div style={{ fontWeight: 600, color: 'var(--success)' }}>R$ {pkg.paid.toLocaleString('pt-BR')}</div></div>
-                <div><div className="text-muted" style={{ fontSize: '0.68rem' }}>Devedor</div><div style={{ fontWeight: 600, color: owed > 0 ? 'var(--danger)' : 'var(--success)' }}>R$ {owed.toLocaleString('pt-BR')}</div></div>
+                <div><div className="text-muted" style={{ fontSize: '0.68rem' }}>Valor Total</div><div style={{ fontWeight: 600 }}>{cSym} {pkg.value.toLocaleString('pt-BR')}</div></div>
+                <div><div className="text-muted" style={{ fontSize: '0.68rem' }}>Pago</div><div style={{ fontWeight: 600, color: 'var(--success)' }}>{cSym} {pkg.paid.toLocaleString('pt-BR')}</div></div>
+                <div><div className="text-muted" style={{ fontSize: '0.68rem' }}>Devedor</div><div style={{ fontWeight: 600, color: owed > 0 ? 'var(--danger)' : 'var(--success)' }}>{cSym} {owed.toLocaleString('pt-BR')}</div></div>
               </div>
 
               <div className="progress-bar" style={{ marginBottom: '0.75rem' }}>
@@ -198,7 +201,7 @@ export default function Payments({ clients, packages, payments, addPayment, dele
                   {pkgPayments.map(pay => (
                     <div key={pay.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem', padding: '0.25rem 0', color: 'var(--text-secondary)', gap: '0.5rem' }}>
                       <span style={{ flex: 1 }}>{new Date(pay.date + 'T12:00').toLocaleDateString('pt-BR')} {pay.note && `— ${pay.note}`}</span>
-                      <span style={{ color: 'var(--success)', fontWeight: 500, flexShrink: 0 }}>+ R$ {pay.amount.toLocaleString('pt-BR')}</span>
+                      <span style={{ color: 'var(--success)', fontWeight: 500, flexShrink: 0 }}>+ {cSym} {pay.amount.toLocaleString('pt-BR')}</span>
                       <button
                         onClick={() => setConfirmUndo(pay)}
                         title="Desfazer pagamento"
@@ -251,15 +254,15 @@ export default function Payments({ clients, packages, payments, addPayment, dele
                   <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.78rem' }}>
                     <div>
                       <span style={{ color: 'var(--text-muted)' }}>Total: </span>
-                      <span style={{ fontWeight: 600 }}>R$ {selectedPkg.value.toLocaleString('pt-BR')}</span>
+                      <span style={{ fontWeight: 600 }}>{cSym} {selectedPkg.value.toLocaleString('pt-BR')}</span>
                     </div>
                     <div>
                       <span style={{ color: 'var(--text-muted)' }}>Já pago: </span>
-                      <span style={{ fontWeight: 600, color: 'var(--success)' }}>R$ {selectedPkg.paid.toLocaleString('pt-BR')}</span>
+                      <span style={{ fontWeight: 600, color: 'var(--success)' }}>{cSym} {selectedPkg.paid.toLocaleString('pt-BR')}</span>
                     </div>
                     <div>
                       <span style={{ color: 'var(--text-muted)' }}>Falta: </span>
-                      <span style={{ fontWeight: 700, color: 'var(--danger)' }}>R$ {owed.toLocaleString('pt-BR')}</span>
+                      <span style={{ fontWeight: 700, color: 'var(--danger)' }}>{cSym} {owed.toLocaleString('pt-BR')}</span>
                     </div>
                   </div>
                 </div>
@@ -277,7 +280,7 @@ export default function Payments({ clients, packages, payments, addPayment, dele
                         onClick={() => setForm({ ...form, amount: q.value, note: form.note || q.note })}
                       >
                         <span style={{ fontSize: '0.78rem', fontWeight: 700 }}>{q.label}</span>
-                        <span style={{ fontSize: '0.65rem', opacity: 0.75 }}>R$ {q.value.toLocaleString('pt-BR')}</span>
+                        <span style={{ fontSize: '0.65rem', opacity: 0.75 }}>{cSym} {q.value.toLocaleString('pt-BR')}</span>
                       </button>
                     ))}
                   </div>
@@ -290,7 +293,7 @@ export default function Payments({ clients, packages, payments, addPayment, dele
                     <input type="date" className="form-control" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} />
                   </div>
                   <div className="form-group">
-                    <label>Valor (R$)</label>
+                    <label>Valor ({cSym})</label>
                     <input
                       type="number"
                       className="form-control"
@@ -303,7 +306,7 @@ export default function Payments({ clients, packages, payments, addPayment, dele
                     />
                     {exceedsOwed && (
                       <p style={{ fontSize: '0.72rem', color: 'var(--danger)', marginTop: '0.3rem' }}>
-                        ⚠ Máximo permitido: R$ {owed.toLocaleString('pt-BR')}
+                        ⚠ Máximo permitido: {cSym} {owed.toLocaleString('pt-BR')}
                       </p>
                     )}
                   </div>
@@ -317,7 +320,7 @@ export default function Payments({ clients, packages, payments, addPayment, dele
               <div className="modal-footer">
                 <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
                 <button className="btn btn-primary" onClick={savePayment} disabled={saving || exceedsOwed || !form.amount || Number(form.amount) <= 0}>
-                  {saving ? 'Salvando...' : `Registrar R$ ${Number(form.amount).toLocaleString('pt-BR')}`}
+                  {saving ? 'Salvando...' : `Registrar ${cSym} ${Number(form.amount).toLocaleString('pt-BR')}`}
                 </button>
               </div>
             </div>
@@ -329,7 +332,7 @@ export default function Payments({ clients, packages, payments, addPayment, dele
       {confirmUndo && (
         <ConfirmModal
           title="Desfazer Pagamento"
-          message={`Tem certeza que deseja desfazer o pagamento de R$ ${confirmUndo.amount.toLocaleString('pt-BR')}${confirmUndo.note ? ` (${confirmUndo.note})` : ''}? O valor será subtraído do saldo pago do pacote.`}
+          message={`Tem certeza que deseja desfazer o pagamento de ${cSym} ${confirmUndo.amount.toLocaleString('pt-BR')}${confirmUndo.note ? ` (${confirmUndo.note})` : ''}? O valor será subtraído do saldo pago do pacote.`}
           confirmLabel="Desfazer"
           cancelLabel="Cancelar"
           danger

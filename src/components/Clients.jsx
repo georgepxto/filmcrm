@@ -5,6 +5,7 @@ import {
   Repeat, Clock, DollarSign, Music, Video, Image as ImageIcon, Globe, ExternalLink
 } from 'lucide-react';
 import { useToast } from './Toast';
+import { useAuth } from '../contexts/AuthContext';
 
 const formatPhone = (value) => {
   // Remove everything that's not a digit
@@ -17,6 +18,8 @@ const formatPhone = (value) => {
 };
 
 export default function Clients({ clients, packages, references, addClient, updateClient, deleteClient, addPackage, updatePackage, addReference, updateReference, deleteReference }) {
+  const { user } = useAuth();
+  const cSym = user?.user_metadata?.currency === 'USD' ? '$' : user?.user_metadata?.currency === 'EUR' ? '€' : 'R$';
   const toast = useToast();
   const [showClientModal, setShowClientModal] = useState(false);
   const [showPackageModal, setShowPackageModal] = useState(false);
@@ -263,7 +266,7 @@ export default function Clients({ clients, packages, references, addClient, upda
                                 <Clock size={11} /> {pkg.end_date ? `Até ${new Date(pkg.end_date + 'T12:00').toLocaleDateString('pt-BR')}` : 'Contínuo'}
                               </span>
                               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
-                                <DollarSign size={11} /> R$ {Number(pkg.value || 0).toLocaleString('pt-BR')} / ciclo
+                                <DollarSign size={11} /> {cSym} {Number(pkg.value || 0).toLocaleString('pt-BR')} / ciclo
                               </span>
                             </div>
                           </div>
@@ -614,7 +617,7 @@ export default function Clients({ clients, packages, references, addClient, upda
                 <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '1rem', marginBottom: '1rem' }}>
                   <div className="form-group" style={{ marginBottom: '0.5rem' }}>
                     <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                      <DollarSign size={13} /> Valor por Ciclo ({pkgForm.billing_cycle || 'Mensal'}) (R$)
+                      <DollarSign size={13} /> Valor por Ciclo ({pkgForm.billing_cycle || 'Mensal'}) ({cSym})
                     </label>
                     <input
                       type="number"
@@ -630,7 +633,7 @@ export default function Clients({ clients, packages, references, addClient, upda
                   {pkgValue > 0 && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                       {totalVids > 0 && (
-                        <span>≈ <span style={{ color: 'var(--amber)', fontWeight: 600 }}>R$ {perVideo.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</span>/vídeo</span>
+                        <span>≈ <span style={{ color: 'var(--amber)', fontWeight: 600 }}>{cSym} {perVideo.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</span>/vídeo</span>
                       )}
                     </div>
                   )}
@@ -658,7 +661,7 @@ export default function Clients({ clients, packages, references, addClient, upda
                     </div>
                     <div className="form-row">
                       <div className="form-group">
-                        <label>Valor Pago (R$)</label>
+                        <label>Valor Pago ({cSym})</label>
                         <input type="number" className="form-control" min="0" max={pkgValue} step="100" value={pkgForm.paid} onChange={e => setPkgForm({ ...pkgForm, paid: e.target.value })} />
                       </div>
                       <div className="form-group">

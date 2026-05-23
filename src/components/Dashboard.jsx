@@ -7,7 +7,11 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
 
+import { useAuth } from '../contexts/AuthContext';
+
 export default function Dashboard({ clients, packages, sessions, payments, videos, onNavigate }) {
+  const { user } = useAuth();
+  const cSym = user?.user_metadata?.currency === 'USD' ? '$' : user?.user_metadata?.currency === 'EUR' ? '€' : 'R$';
   const today = new Date();
   const todayStr = today.toISOString().slice(0, 10);
   const weekEnd = new Date(today);
@@ -85,7 +89,7 @@ export default function Dashboard({ clients, packages, sessions, payments, video
     const owed = pkg.value - pkg.paid;
     alerts.push({
       type: 'info',
-      text: `<strong>${client}</strong> possui saldo devedor de R$ ${owed.toLocaleString('pt-BR')}`,
+      text: `<strong>${client}</strong> possui saldo devedor de ${cSym} ${owed.toLocaleString('pt-BR')}`,
     });
   });
 
@@ -125,7 +129,7 @@ export default function Dashboard({ clients, packages, sessions, payments, video
           <div className="info">
             <h4>Previsto/Mês</h4>
             <div className="value" style={{ color: 'var(--info)' }}>
-              R$ {monthlyExpected.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
+              {cSym} {monthlyExpected.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
             </div>
           </div>
         </div>
@@ -217,7 +221,7 @@ export default function Dashboard({ clients, packages, sessions, payments, video
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
               <span className="text-muted" style={{ fontSize: '0.78rem' }}>Recebido este mês</span>
               <span className="text-amber" style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', fontWeight: 700 }}>
-                R$ {monthPayments.toLocaleString('pt-BR')}
+                {cSym} {monthPayments.toLocaleString('pt-BR')}
               </span>
             </div>
             <ResponsiveContainer width="100%" height={220}>
@@ -226,7 +230,7 @@ export default function Dashboard({ clients, packages, sessions, payments, video
                 <XAxis dataKey="month" stroke="#6b6155" tick={{ fontSize: 11 }} />
                 <YAxis stroke="#6b6155" tick={{ fontSize: 11 }} tickFormatter={v => `${(v / 1000).toFixed(0)}k`} />
                 <Tooltip
-                  formatter={(v) => [`R$ ${v.toLocaleString('pt-BR')}`, 'Receita']}
+                  formatter={(v) => [`${cSym} ${v.toLocaleString('pt-BR')}`, 'Receita']}
                   contentStyle={{ background: '#161616', border: '1px solid #222', borderRadius: 10, fontSize: '0.82rem' }}
                   cursor={{ fill: 'rgba(212,135,10,0.08)' }}
                 />
@@ -241,19 +245,19 @@ export default function Dashboard({ clients, packages, sessions, payments, video
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid var(--border)' }}>
               <span className="text-muted" style={{ fontSize: '0.82rem' }}>Previsto/Mês (Contratos)</span>
               <span style={{ color: 'var(--info)', fontWeight: 600 }}>
-                R$ {monthlyExpected.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
+                {cSym} {monthlyExpected.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
               </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid var(--border)' }}>
               <span className="text-muted" style={{ fontSize: '0.82rem' }}>Total Recebido (Geral)</span>
               <span style={{ color: 'var(--success)', fontWeight: 600 }}>
-                R$ {payments.reduce((s, p) => s + p.amount, 0).toLocaleString('pt-BR')}
+                {cSym} {payments.reduce((s, p) => s + p.amount, 0).toLocaleString('pt-BR')}
               </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0' }}>
               <span className="text-muted" style={{ fontSize: '0.82rem' }}>Saldo Devedor Total</span>
               <span style={{ color: totalOwed > 0 ? 'var(--danger)' : 'var(--success)', fontWeight: 600 }}>
-                R$ {totalOwed.toLocaleString('pt-BR')}
+                {cSym} {totalOwed.toLocaleString('pt-BR')}
               </span>
             </div>
           </div>

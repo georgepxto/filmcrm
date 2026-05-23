@@ -5,8 +5,11 @@ import {
   TrendingUp, Clock, Eye, X, Repeat, Video, Scissors, Smartphone, Plus, User,
 } from 'lucide-react';
 import { useToast } from './Toast';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Packages({ clients, packages, payments, videos, updatePackage, addPackage }) {
+  const { user } = useAuth();
+  const cSym = user?.user_metadata?.currency === 'USD' ? '$' : user?.user_metadata?.currency === 'EUR' ? '€' : 'R$';
   const toast = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -136,7 +139,7 @@ export default function Packages({ clients, packages, payments, videos, updatePa
           <div className="icon-wrap" style={{ background: 'rgba(96,165,250,0.15)', color: 'var(--info)' }}><DollarSign size={20} /></div>
           <div className="info">
             <h4>Valor Total</h4>
-            <div className="value" style={{ color: 'var(--info)', fontSize: '1.1rem' }}>R$ {totalValue.toLocaleString('pt-BR')}</div>
+            <div className="value" style={{ color: 'var(--info)', fontSize: '1.1rem' }}>{cSym} {totalValue.toLocaleString('pt-BR')}</div>
           </div>
         </div>
         <div className="summary-card">
@@ -254,10 +257,10 @@ export default function Packages({ clients, packages, payments, videos, updatePa
                   <div style={{ width: 140, textAlign: 'right', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.75rem' }}>
                     <div>
                       <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
-                        R$ {(pkg.value || 0).toLocaleString('pt-BR')}
+                        {cSym} {(pkg.value || 0).toLocaleString('pt-BR')}
                       </div>
                       <div style={{ fontSize: '0.7rem', color: owed > 0 ? 'var(--danger)' : 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.2rem', justifyContent: 'flex-end' }}>
-                        {owed > 0 ? `Deve R$ ${owed.toLocaleString('pt-BR')}` : <><CheckCircle size={11} /> Quitado</>}
+                        {owed > 0 ? `Deve ${cSym} ${owed.toLocaleString('pt-BR')}` : <><CheckCircle size={11} /> Quitado</>}
                       </div>
                     </div>
                     {isExpanded ? <ChevronUp size={16} style={{ color: 'var(--text-muted)' }} /> : <ChevronDown size={16} style={{ color: 'var(--text-muted)' }} />}
@@ -291,11 +294,11 @@ export default function Packages({ clients, packages, payments, videos, updatePa
                       </div>
                       <div className="card" style={{ padding: '0.75rem', textAlign: 'center', background: 'var(--bg-modifier)' }}>
                         <div className="text-muted" style={{ fontSize: '0.68rem', marginBottom: '0.15rem' }}>Pago</div>
-                        <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--success)' }}>R$ {(pkg.paid || 0).toLocaleString('pt-BR')}</div>
+                        <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--success)' }}>{cSym} {(pkg.paid || 0).toLocaleString('pt-BR')}</div>
                       </div>
                       <div className="card" style={{ padding: '0.75rem', textAlign: 'center', background: 'var(--bg-modifier)' }}>
                         <div className="text-muted" style={{ fontSize: '0.68rem', marginBottom: '0.15rem' }}>Devendo</div>
-                        <div style={{ fontWeight: 700, fontSize: '1rem', color: owed > 0 ? 'var(--danger)' : 'var(--success)' }}>R$ {owed.toLocaleString('pt-BR')}</div>
+                        <div style={{ fontWeight: 700, fontSize: '1rem', color: owed > 0 ? 'var(--danger)' : 'var(--success)' }}>{cSym} {owed.toLocaleString('pt-BR')}</div>
                       </div>
                     </div>
 
@@ -319,7 +322,7 @@ export default function Packages({ clients, packages, payments, videos, updatePa
                             <input type="number" className="form-control" value={editForm.posted} onChange={e => setEditForm({ ...editForm, posted: e.target.value })} min={0} max={pkg.total_videos} />
                           </div>
                           <div className="form-group" style={{ marginBottom: 0 }}>
-                            <label>Pago (R$)</label>
+                            <label>Pago ({cSym})</label>
                             <input type="number" className="form-control" value={editForm.paid} onChange={e => setEditForm({ ...editForm, paid: e.target.value })} min={0} />
                           </div>
                           <div className="form-group" style={{ marginBottom: 0 }}>
@@ -366,7 +369,7 @@ export default function Packages({ clients, packages, payments, videos, updatePa
                                   {pay.note && <span style={{ color: 'var(--text-secondary)' }}>{pay.note}</span>}
                                 </div>
                                 <span style={{ color: 'var(--success)', fontWeight: 600 }}>
-                                  + R$ {pay.amount.toLocaleString('pt-BR')}
+                                  + {cSym} {pay.amount.toLocaleString('pt-BR')}
                                 </span>
                               </div>
                             ))}
@@ -407,7 +410,7 @@ export default function Packages({ clients, packages, payments, videos, updatePa
                       {pkg.end_date && (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><Clock size={11} />Fim: {new Date(pkg.end_date + 'T12:00').toLocaleDateString('pt-BR')}</span>
                       )}
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><DollarSign size={11} />Valor/ciclo: R$ {(pkg.value || 0).toLocaleString('pt-BR')}</span>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><DollarSign size={11} />Valor/ciclo: {cSym} {(pkg.value || 0).toLocaleString('pt-BR')}</span>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><Repeat size={11} />Ciclo: {pkg.billing_cycle || 'Mensal'}</span>
                     </div>
                   </div>
@@ -482,12 +485,12 @@ export default function Packages({ clients, packages, payments, videos, updatePa
                 </div>
                 <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '1rem', marginBottom: '1rem' }}>
                   <div className="form-group" style={{ marginBottom: '0.5rem' }}>
-                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><DollarSign size={13} /> Valor por Ciclo ({createForm.billing_cycle || 'Mensal'}) (R$)</label>
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><DollarSign size={13} /> Valor por Ciclo ({createForm.billing_cycle || 'Mensal'}) ({cSym})</label>
                     <input type="number" className="form-control" min="0" step="100" placeholder="0" value={createForm.value} onChange={e => setCreateForm({ ...createForm, value: e.target.value })} style={{ fontSize: '1.1rem', fontWeight: 600 }} />
                   </div>
                   {pkgValue > 0 && totalVids > 0 && (
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      ≈ <span style={{ color: 'var(--amber)', fontWeight: 600 }}>R$ {perVideo.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</span>/vídeo
+                      ≈ <span style={{ color: 'var(--amber)', fontWeight: 600 }}>{cSym} {perVideo.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</span>/vídeo
                     </div>
                   )}
                 </div>

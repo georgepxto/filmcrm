@@ -19,7 +19,7 @@ const NAV_ITEMS = [
   { key: 'calendar', label: 'Calendário', icon: CalendarDays },
   { key: 'clients', label: 'Clientes & Pacotes', icon: Users },
   { key: 'packages', label: 'Pacotes', icon: Package },
-  { key: 'posts', label: 'Postagens', icon: Film },
+  { key: 'posts', label: 'Todo List', icon: Film },
   { key: 'payments', label: 'Pagamentos', icon: DollarSign },
 ];
 

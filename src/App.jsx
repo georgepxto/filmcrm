@@ -74,7 +74,7 @@ function AppContent() {
       case 'packages':
         return <Packages clients={data.clients} packages={data.packages} payments={data.payments} videos={data.videos} updatePackage={data.updatePackage} addPackage={data.addPackage} />;
       case 'posts':
-        return <PostControl clients={data.clients} videos={data.videos} packages={data.packages} addVideo={data.addVideo} updateVideo={data.updateVideo} deleteVideo={data.deleteVideo} />;
+        return <PostControl clients={data.clients} videos={data.videos} packages={data.packages} addVideo={data.addVideo} updateVideo={data.updateVideo} deleteVideo={data.deleteVideo} pipelineSettings={data.pipelineSettings} updatePipelineSettings={data.updatePipelineSettings} />;
       case 'payments':
         return <Payments clients={data.clients} packages={data.packages} payments={data.payments} addPayment={data.addPayment} deletePayment={data.deletePayment} />;
       default:

@@ -11,6 +11,7 @@ export function useSupabaseData() {
   const [videos, setVideos] = useState([]);
   const [payments, setPayments] = useState([]);
   const [references, setReferences] = useState([]);
+  const [pipelineSettings, setPipelineSettings] = useState({ notes: '', links: [] });
   const [loading, setLoading] = useState(true);
 
   // ─── Fetch all data ───
@@ -18,13 +19,14 @@ export function useSupabaseData() {
     if (!user) return;
     setLoading(true);
     try {
-      const [cRes, pRes, sRes, vRes, payRes, rRes] = await Promise.all([
+      const [cRes, pRes, sRes, vRes, payRes, rRes, pipelineSettingsRes] = await Promise.all([
         supabase.from('clients').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
         supabase.from('packages').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
         supabase.from('sessions').select('*').eq('user_id', user.id).order('date', { ascending: true }),
         supabase.from('videos').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
         supabase.from('payments').select('*').eq('user_id', user.id).order('date', { ascending: false }),
         supabase.from('references').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+        supabase.from('pipeline_settings').select('*').eq('user_id', user.id).single()
       ]);
 
       if (cRes.data) setClients(cRes.data);
@@ -33,6 +35,7 @@ export function useSupabaseData() {
       if (vRes.data) setVideos(vRes.data);
       if (payRes.data) setPayments(payRes.data);
       if (rRes.data) setReferences(rRes.data);
+      if (pipelineSettingsRes && pipelineSettingsRes.data) setPipelineSettings(pipelineSettingsRes.data);
     } catch (err) {
       console.error('Error fetching data:', err);
     }
@@ -308,6 +311,20 @@ export function useSupabaseData() {
     return true;
   };
 
+  // ─── Pipeline Settings ───
+  const updatePipelineSettings = async (updates) => {
+    // Upsert since it might not exist yet
+    const newSettings = { ...pipelineSettings, ...updates, user_id: user.id };
+    const { data, error } = await supabase
+      .from('pipeline_settings')
+      .upsert([newSettings])
+      .select()
+      .single();
+    if (error) { console.error('updatePipelineSettings error:', error); return null; }
+    setPipelineSettings(data);
+    return data;
+  };
+
   return {
     // Data
     clients,
@@ -347,5 +364,9 @@ export function useSupabaseData() {
     addReference,
     updateReference,
     deleteReference,
+
+    // Pipeline Settings
+    pipelineSettings,
+    updatePipelineSettings,
   };
 }

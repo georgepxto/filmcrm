@@ -1,88 +1,104 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
-  Film, Plus, X, Calendar, CheckSquare, Square, MessageCircle
+  Film, Plus, X, Calendar, CheckSquare, Square, Search,
+  Trash2, Edit3, MessageCircle, Clock, ClipboardList, User, CheckCircle, Activity,
+  PieChart, AlertCircle, StickyNote
 } from 'lucide-react';
 import { useToast } from './Toast';
 
-const STAGES = [
-  { key: 'edited', label: 'Editado', color: 'var(--amber)' },
-  { key: 'delivered', label: 'Entregue', color: 'var(--info)' },
-  { key: 'posted', label: 'Postado', color: 'var(--success)' },
-];
-
 const STAGE_ORDER = ['edited', 'delivered', 'posted'];
 
-export default function PostControl({ clients, videos, packages, addVideo, updateVideo, deleteVideo }) {
+const getStatus = (v) => {
+  if (v.posted) return { label: 'Postado', color: '#34d399', bg: 'rgba(52,211,153,0.12)' };
+  if (v.delivered) return { label: 'Entregue', color: '#60a5fa', bg: 'rgba(96,165,250,0.12)' };
+  if (v.edited) return { label: 'Editado', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' };
+  return { label: 'Não iniciado', color: '#ef4444', bg: 'rgba(239,68,68,0.10)' };
+};
+
+export default function PostControl({ clients, videos, packages, addVideo, updateVideo, deleteVideo, pipelineSettings, updatePipelineSettings }) {
   const toast = useToast();
   const [filterClient, setFilterClient] = useState('');
-  const [viewMode, setViewMode] = useState('kanban');
+  const [searchQuery, setSearchQuery] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editVideoData, setEditVideoData] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [hoveredRow, setHoveredRow] = useState(null);
 
-  // Drag state
-  const [draggedId, setDraggedId] = useState(null);
-  const [dragOverColumn, setDragOverColumn] = useState(null);
+  const [localNotes, setLocalNotes] = useState('');
+  useEffect(() => {
+    if (pipelineSettings?.notes !== undefined) {
+      setLocalNotes(pipelineSettings.notes);
+    }
+  }, [pipelineSettings?.notes]);
+
+  const saveNotes = () => {
+    if (pipelineSettings && localNotes !== pipelineSettings.notes) {
+      updatePipelineSettings({ notes: localNotes });
+      toast.success('Notas salvas');
+    }
+  };
 
   const emptyForm = { client_id: '', package_id: '', title: '', edited: false, delivered: false, posted: false, planned_date: '' };
   const [form, setForm] = useState(emptyForm);
 
   const getName = (id) => clients.find(c => c.id === id)?.name || '—';
   const getPhone = (id) => clients.find(c => c.id === id)?.contact || '';
-  const filtered = filterClient ? videos.filter(v => v.client_id === filterClient) : videos;
+  const getPkgName = (id) => packages.find(p => p.id === id)?.name || '';
 
-  const getStage = (v) => {
-    if (v.posted) return 'posted';
-    if (v.delivered) return 'delivered';
-    if (v.edited) return 'edited';
-    return 'edited'; // Fallback to 'edited' since it's the first column
-  };
-
-  // ── Drag & Drop handlers ──
-  const handleDragStart = (e, videoId) => {
-    setDraggedId(videoId);
-    e.dataTransfer.effectAllowed = 'move';
-    // Add ghost image effect
-    e.dataTransfer.setData('text/plain', videoId);
-  };
-
-  const handleDragEnd = () => {
-    setDraggedId(null);
-    setDragOverColumn(null);
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
-
-  const handleDrop = async (e, targetStageKey) => {
-    e.preventDefault();
-    if (!draggedId) return;
-    setDragOverColumn(null);
-
-    const targetIdx = STAGE_ORDER.indexOf(targetStageKey);
-    const updates = {};
-    STAGE_ORDER.forEach((stage, idx) => {
-      updates[stage] = idx <= targetIdx;
+  const filtered = useMemo(() => {
+    let list = [...videos];
+    if (filterClient) list = list.filter(v => v.client_id === filterClient);
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(v => v.title.toLowerCase().includes(q) || getName(v.client_id).toLowerCase().includes(q));
+    }
+    list.sort((a, b) => {
+      if (a.posted !== b.posted) return a.posted ? 1 : -1;
+      if (a.planned_date && b.planned_date) return a.planned_date.localeCompare(b.planned_date);
+      if (a.planned_date) return -1;
+      if (b.planned_date) return 1;
+      return 0;
     });
+    return list;
+  }, [videos, filterClient, searchQuery, clients]);
 
-    const result = await updateVideo(draggedId, updates);
-    setDraggedId(null);
-    if (result) {
-      const stageLabel = STAGES.find(s => s.key === targetStageKey)?.label || '';
-      toast.success(`Vídeo movido para "${stageLabel}"`);
+  // Widget Computations
+  const totalVideos = videos.length;
+  const doneCount = videos.filter(v => v.posted).length;
+  const overdueVideos = videos.filter(v => v.planned_date && !v.posted && new Date(v.planned_date + 'T23:59:59') < new Date());
+  
+  const upcomingDeadlines = useMemo(() => {
+    return videos
+      .filter(v => !v.posted && v.planned_date)
+      .sort((a, b) => a.planned_date.localeCompare(b.planned_date))
+      .slice(0, 4);
+  }, [videos]);
+
+  const toggleDone = async (videoId) => {
+    const v = videos.find(x => x.id === videoId);
+    if (!v) return;
+    if (v.posted) {
+      await updateVideo(videoId, { edited: false, delivered: false, posted: false });
+      toast.success('↩ Vídeo reaberto');
+    } else {
+      await updateVideo(videoId, { edited: true, delivered: true, posted: true });
+      toast.success('✓ Vídeo concluído');
     }
   };
 
-  // ── List view toggle ──
-  const toggleStage = async (videoId, stage) => {
+  const cycleStatus = async (videoId) => {
     const v = videos.find(x => x.id === videoId);
     if (!v) return;
-    const upd = { [stage]: !v[stage] };
-    const order = STAGE_ORDER;
-    if (v[stage]) { for (let i = order.indexOf(stage) + 1; i < order.length; i++) upd[order[i]] = false; }
-    await updateVideo(videoId, upd);
+    let upd;
+    if (!v.edited) upd = { edited: true, delivered: false, posted: false };
+    else if (!v.delivered) upd = { edited: true, delivered: true, posted: false };
+    else if (!v.posted) upd = { edited: true, delivered: true, posted: true };
+    else upd = { edited: false, delivered: false, posted: false };
+    const result = await updateVideo(videoId, upd);
+    if (result) {
+      const status = getStatus({ ...v, ...upd });
+      toast.success(`→ ${status.label}`);
+    }
   };
 
   const openModal = (video = null) => {
@@ -102,147 +118,328 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
     setSaving(true);
     if (editVideoData) {
       const result = await updateVideo(editVideoData.id, form);
-      result ? toast.success('Vídeo atualizado') : toast.error('Erro ao atualizar vídeo');
+      result ? toast.success('Vídeo atualizado') : toast.error('Erro ao atualizar');
     } else {
       const result = await addVideo(form);
-      result ? toast.success(`Vídeo "${form.title}" adicionado`) : toast.error('Erro ao adicionar vídeo');
+      result ? toast.success(`"${form.title}" adicionado`) : toast.error('Erro ao adicionar');
     }
     setSaving(false);
     setShowModal(false);
   };
 
+  const handleDelete = async (id) => {
+    const result = await deleteVideo(id);
+    if (result) toast.success('Vídeo removido');
+  };
+
   const cpf = packages.filter(p => p.client_id === form.client_id);
+
+  // Table column styles
+  const colTask = { flex: '1 1 0', minWidth: 180 };
+  const colClient = { width: 160, flexShrink: 0 };
+  const colDone = { width: 90, flexShrink: 0, display: 'flex', justifyContent: 'center' };
+  const colProgress = { width: 140, flexShrink: 0, display: 'flex', justifyContent: 'center' };
+  const colDate = { width: 110, flexShrink: 0 };
+  const colActions = { width: 60, flexShrink: 0, display: 'flex', justifyContent: 'flex-end' };
 
   return (
     <div className="fade-in">
-      <div className="page-header">
-        <h2><Film size={24} /> Controle de Postagens</h2>
-        <div className="flex gap-1">
-          <select className="form-control" style={{ minWidth: 180 }} value={filterClient} onChange={e => setFilterClient(e.target.value)}>
-            <option value="">Todos os clientes</option>
-            {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-          <button className={`btn ${viewMode === 'kanban' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => setViewMode('kanban')}>Clientes</button>
-          <button className={`btn ${viewMode === 'list' ? 'btn-primary' : 'btn-secondary'} btn-sm`} onClick={() => setViewMode('list')}>Lista</button>
-          <button className="btn btn-primary" onClick={() => openModal()}><Plus size={16} /> Vídeo</button>
-        </div>
+      <div className="page-header" style={{ marginBottom: '0.5rem' }}>
+        <h2><Film size={24} /> Pipeline de Produção</h2>
+        <button className="btn btn-primary" onClick={() => openModal()}>
+          <Plus size={16} /> Novo Vídeo
+        </button>
       </div>
 
-      {viewMode === 'kanban' ? (
-        <div className="kanban-board">
-          {STAGES.map(stage => {
-            const col = filtered.filter(v => getStage(v) === stage.key);
-            const isDragTarget = dragOverColumn === stage.key;
-            return (
-              <div
-                key={stage.key}
-                className={`kanban-column${isDragTarget ? ' kanban-drag-over' : ''}`}
-                onDragOver={handleDragOver}
-                onDragEnter={() => setDragOverColumn(stage.key)}
-                onDragLeave={(e) => {
-                  // Only clear if leaving the column entirely (not entering a child)
-                  if (!e.currentTarget.contains(e.relatedTarget)) setDragOverColumn(null);
-                }}
-                onDrop={(e) => handleDrop(e, stage.key)}
-              >
-                <div className="kanban-column-header" style={{ borderColor: isDragTarget ? stage.color : 'var(--amber-dim)' }}>
-                  <span style={{ color: isDragTarget ? stage.color : undefined }}>{stage.label}</span>
-                  <span className="count">{col.length}</span>
-                </div>
+      <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem', fontStyle: 'italic' }}>
+        Gerencie todos os seus vídeos em produção e acesse utilitários rápidos na barra lateral.
+      </p>
 
-                {col.map(v => (
-                  <div
-                    key={v.id}
-                    className={`kanban-card${draggedId === v.id ? ' kanban-dragging' : ''}`}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, v.id)}
-                    onDragEnd={handleDragEnd}
-                  >
-                    <div className="kanban-drag-handle" title="Arraste para mover">⠿</div>
-                    <h5>{v.title}</h5>
-                    <div className="flex-between">
-                      <p>{getName(v.client_id)}</p>
-                      {getPhone(v.client_id) && (
-                        <a href={`https://wa.me/${getPhone(v.client_id).replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" style={{ color: '#25D366', marginLeft: '0.5rem' }} title="Falar no WhatsApp" onDragStart={e => e.preventDefault()}>
-                          <MessageCircle size={13} />
+      {/* Filters */}
+      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ position: 'relative', flex: '1 1 200px', maxWidth: 300 }}>
+          <Search size={14} style={{ position: 'absolute', left: '0.6rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+          <input type="text" className="form-control" placeholder="Buscar vídeo..." value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)} style={{ paddingLeft: '2rem', fontSize: '0.82rem' }} />
+        </div>
+        <select className="form-control" style={{ width: 'auto', minWidth: 160, maxWidth: 250, fontSize: '0.82rem' }} value={filterClient} onChange={e => setFilterClient(e.target.value)}>
+          <option value="">Todos os clientes</option>
+          {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+      </div>
+
+      {/* Main Grid Layout */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '2rem', alignItems: 'start' }}>
+        
+        {/* LEFT COLUMN: TABLE AND FILTERS */}
+        <div style={{ minWidth: 0 }}>
+
+          {/* Table */}
+          <div style={{
+            background: 'var(--bg-card)', border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-lg)', overflow: 'hidden'
+          }}>
+            {/* Header row */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '1rem',
+              padding: '0.75rem 1.25rem',
+              borderBottom: '1px solid var(--border)',
+              fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase',
+              letterSpacing: '0.06em', color: 'var(--text-muted)',
+              background: 'var(--bg-secondary)'
+            }}>
+              <div style={{ ...colTask, display: 'flex', alignItems: 'center', gap: '6px' }}><ClipboardList size={14} /> Tarefa</div>
+              <div style={{ ...colClient, display: 'flex', alignItems: 'center', gap: '6px' }}><User size={14} /> Cliente</div>
+              <div style={{ ...colDone, alignItems: 'center', gap: '6px' }}><CheckCircle size={14} /> Done</div>
+              <div style={{ ...colProgress, alignItems: 'center', gap: '6px' }}><Activity size={14} /> Progresso</div>
+              <div style={{ ...colDate, display: 'flex', alignItems: 'center', gap: '6px' }}><Calendar size={14} /> Previsão</div>
+              <div style={{ ...colActions }}></div>
+            </div>
+
+            {/* Rows */}
+            {filtered.length === 0 ? (
+              <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <Film size={40} style={{ marginBottom: '0.75rem', opacity: 0.3 }} />
+                <p style={{ fontSize: '0.85rem' }}>Nenhum vídeo encontrado</p>
+                <button className="btn btn-primary btn-sm" style={{ marginTop: '0.75rem' }} onClick={() => openModal()}>
+                  <Plus size={14} /> Criar primeiro vídeo
+                </button>
+              </div>
+            ) : (
+              filtered.map((v, i) => {
+                const status = getStatus(v);
+                const isDone = v.posted;
+                const overdue = v.planned_date && !v.posted && new Date(v.planned_date + 'T23:59:59') < new Date();
+                const phone = getPhone(v.client_id);
+                const isHovered = hoveredRow === v.id;
+
+                return (
+                  <div key={v.id}
+                    onMouseEnter={() => setHoveredRow(v.id)}
+                    onMouseLeave={() => setHoveredRow(null)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '1rem',
+                      padding: '0.65rem 1.25rem',
+                      borderBottom: i < filtered.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                      background: isHovered ? 'rgba(255,255,255,0.02)' : 'transparent',
+                      transition: 'background 0.15s ease',
+                      opacity: isDone ? 0.5 : 1,
+                    }}>
+
+                    {/* Task */}
+                    <div style={{ ...colTask, display: 'flex', alignItems: 'center', gap: '0.5rem', overflow: 'hidden' }}>
+                      <span style={{
+                        fontSize: '0.88rem', fontWeight: 500,
+                        color: isDone ? 'var(--text-muted)' : 'var(--text-primary)',
+                        textDecoration: isDone ? 'line-through' : 'none',
+                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
+                      }}>
+                        {v.title}
+                      </span>
+                      {overdue && (
+                        <span style={{
+                          fontSize: '0.6rem', fontWeight: 700, color: 'var(--danger)',
+                          padding: '0.1rem 0.35rem', background: 'rgba(239,68,68,0.1)',
+                          borderRadius: '4px', flexShrink: 0, whiteSpace: 'nowrap'
+                        }}>ATRASADO</span>
+                      )}
+                    </div>
+
+                    {/* Client */}
+                    <div style={{ ...colClient, display: 'flex', alignItems: 'center', gap: '0.35rem', overflow: 'hidden' }}>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {getName(v.client_id)}
+                      </span>
+                      {phone && isHovered && (
+                        <a href={`https://wa.me/${phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
+                          style={{ color: '#25D366', display: 'flex', flexShrink: 0 }} title="WhatsApp">
+                          <MessageCircle size={12} />
                         </a>
                       )}
                     </div>
-                    {v.planned_date && (
-                      <p style={{ marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                        <Calendar size={10} /> {new Date(v.planned_date + 'T12:00').toLocaleDateString('pt-BR')}
-                      </p>
-                    )}
-                    <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div className="flex gap-1" style={{ fontSize: '0.65rem' }}>
-                        {STAGES.map(s => (
-                          <span key={s.key} style={{ color: v[s.key] ? s.color : 'var(--text-muted)', opacity: v[s.key] ? 1 : 0.35 }}>●</span>
-                        ))}
-                      </div>
-                      <button
-                        className="btn btn-danger btn-sm"
-                        style={{ padding: '0.1rem 0.3rem', fontSize: '0.65rem' }}
-                        onClick={() => deleteVideo(v.id)}
-                        title="Excluir"
-                      >
-                        <X size={11} />
+
+                    {/* Done checkbox */}
+                    <div style={{ ...colDone, alignItems: 'center' }}>
+                      <button onClick={() => toggleDone(v.id)} style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        color: isDone ? 'var(--success)' : 'var(--text-muted)',
+                        padding: 0, display: 'flex', transition: 'color 0.15s'
+                      }}>
+                        {isDone ? <CheckSquare size={18} /> : <Square size={18} />}
+                      </button>
+                    </div>
+
+                    {/* Progress badge */}
+                    <div style={{ ...colProgress, alignItems: 'center' }}>
+                      <button onClick={() => cycleStatus(v.id)} style={{
+                        background: status.bg, border: 'none',
+                        color: status.color, fontSize: '0.73rem', fontWeight: 600,
+                        padding: '0.25rem 0.75rem', borderRadius: '100px',
+                        cursor: 'pointer', transition: 'all 0.15s ease',
+                        whiteSpace: 'nowrap',
+                      }}
+                        onMouseEnter={e => e.currentTarget.style.filter = 'brightness(1.2)'}
+                        onMouseLeave={e => e.currentTarget.style.filter = 'none'}>
+                        {status.label}
+                      </button>
+                    </div>
+
+                    {/* Date */}
+                    <div style={{ ...colDate, display: 'flex', alignItems: 'center', fontSize: '0.78rem', color: overdue ? 'var(--danger)' : 'var(--text-muted)' }}>
+                      {v.planned_date ? new Date(v.planned_date + 'T12:00').toLocaleDateString('pt-BR') : '—'}
+                    </div>
+
+                    {/* Actions */}
+                    <div style={{ ...colActions, alignItems: 'center', gap: '0.25rem', opacity: isHovered ? 1 : 0, transition: 'opacity 0.15s' }}>
+                      <button onClick={() => openModal(v)} title="Editar"
+                        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.25rem', borderRadius: '4px' }}
+                        onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
+                        onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}>
+                        <Edit3 size={13} />
+                      </button>
+                      <button onClick={() => handleDelete(v.id)} title="Excluir"
+                        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.25rem', borderRadius: '4px' }}
+                        onMouseEnter={e => e.currentTarget.style.color = 'var(--danger)'}
+                        onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}>
+                        <Trash2 size={13} />
                       </button>
                     </div>
                   </div>
-                ))}
+                );
+              })
+            )}
 
-                {col.length === 0 && (
-                  <div className={`kanban-empty${isDragTarget ? ' kanban-empty-active' : ''}`}>
-                    {isDragTarget ? '↓ Solte aqui' : 'Nenhum vídeo'}
-                  </div>
-                )}
+            {/* Footer count */}
+            {filtered.length > 0 && (
+              <div style={{
+                padding: '0.6rem 1rem', borderTop: '1px solid var(--border)',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                fontSize: '0.73rem', color: 'var(--text-muted)', background: 'var(--bg-secondary)'
+              }}>
+                <span>COUNT <strong style={{ color: 'var(--text-primary)' }}>{filtered.length}</strong></span>
+                <span>{doneCount} de {videos.length} concluídos</span>
               </div>
-            );
-          })}
+            )}
+          </div>
         </div>
-      ) : (
-        <div className="table-wrap">
-          <table>
-            <thead><tr><th>Vídeo</th><th>Cliente</th><th>Editado</th><th>Entregue</th><th>Postado</th><th>Previsão</th><th></th></tr></thead>
-            <tbody>
-              {filtered.map(v => (
-                <tr key={v.id}>
-                  <td style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{v.title}</td>
-                  <td>{getName(v.client_id)}</td>
-                  {STAGES.map(s => (
-                    <td key={s.key}><button onClick={() => toggleStage(v.id, s.key)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: v[s.key] ? s.color : 'var(--text-muted)', padding: 0 }}>{v[s.key] ? <CheckSquare size={18} /> : <Square size={18} />}</button></td>
-                  ))}
-                  <td>{v.planned_date ? new Date(v.planned_date + 'T12:00').toLocaleDateString('pt-BR') : '—'}</td>
-                  <td>
-                    <div className="flex gap-1">
-                      <button className="btn btn-secondary btn-sm" onClick={() => openModal(v)} style={{ padding: '0.2rem 0.4rem' }}><Film size={12} /></button>
-                      <button className="btn btn-danger btn-sm" onClick={() => deleteVideo(v.id)} style={{ padding: '0.2rem 0.4rem' }}><X size={12} /></button>
+
+        {/* RIGHT COLUMN: WIDGETS */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          
+          {/* Widget 1: Produtividade */}
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '1.25rem' }}>
+            <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+              <PieChart size={16} color="var(--primary)" /> Produtividade
+            </h4>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Total</p>
+                <p style={{ fontSize: '1.5rem', fontWeight: 600 }}>{totalVideos}</p>
+              </div>
+              <div>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Concluídos</p>
+                <p style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--success)' }}>{doneCount}</p>
+              </div>
+            </div>
+            {overdueVideos.length > 0 && (
+              <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'rgba(239,68,68,0.1)', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <AlertCircle size={16} color="var(--danger)" />
+                <span style={{ fontSize: '0.8rem', color: 'var(--danger)', fontWeight: 500 }}>
+                  {overdueVideos.length} {overdueVideos.length === 1 ? 'vídeo atrasado' : 'vídeos atrasados'}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Widget 2: Próximos Prazos */}
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '1.25rem' }}>
+            <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+              <Calendar size={16} color="var(--primary)" /> Próximos Prazos
+            </h4>
+            {upcomingDeadlines.length === 0 ? (
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Nenhum prazo urgente.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {upcomingDeadlines.map(v => (
+                  <div key={v.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.5rem' }}>
+                    <div style={{ overflow: 'hidden' }}>
+                      <p style={{ fontSize: '0.82rem', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{v.title}</p>
+                      <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{getName(v.client_id)}</p>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--primary)', flexShrink: 0, background: 'rgba(212, 135, 10, 0.1)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
+                      {new Date(v.planned_date + 'T12:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Widget 3: Bloco de Notas */}
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '1.25rem', display: 'flex', flexDirection: 'column' }}>
+            <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+              <StickyNote size={16} color="var(--primary)" /> Notas Rápidas
+            </h4>
+            <textarea
+              value={localNotes}
+              onChange={e => setLocalNotes(e.target.value)}
+              onBlur={saveNotes}
+              placeholder="Ideias, lembretes, links..."
+              style={{
+                width: '100%', height: '120px', resize: 'vertical',
+                background: 'var(--bg-secondary)', color: 'var(--text-primary)',
+                border: '1px solid var(--border)', borderRadius: '8px',
+                padding: '0.75rem', fontSize: '0.82rem', fontFamily: 'inherit',
+                outline: 'none', transition: 'border-color 0.2s'
+              }}
+              onFocus={e => e.target.style.borderColor = 'var(--primary)'}
+              onMouseLeave={e => { if (document.activeElement !== e.target) e.target.style.borderColor = 'var(--border)' }}
+            />
+            <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '0.5rem', textAlign: 'right' }}>Salva automaticamente ao sair</p>
+          </div>
+
         </div>
-      )}
+      </div>
 
-      {filtered.length === 0 && <div className="empty-state mt-2"><Film size={48} /><p>Nenhum vídeo encontrado</p></div>}
-
+      {/* Modal */}
       {showModal && (
         <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setShowModal(false); }}>
           <div className="modal">
-            <div className="modal-header"><h3><Film size={18} /> {editVideoData ? 'Editar Vídeo' : 'Novo Vídeo'}</h3><button className="modal-close" onClick={() => setShowModal(false)}><X size={18} /></button></div>
+            <div className="modal-header">
+              <h3><Film size={18} /> {editVideoData ? 'Editar Vídeo' : 'Novo Vídeo'}</h3>
+              <button className="modal-close" onClick={() => setShowModal(false)}><X size={18} /></button>
+            </div>
             <div className="modal-body">
-              <div className="form-group"><label>Título</label><input className="form-control" placeholder="Ex: Reel Behind the Scenes" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} /></div>
-              <div className="form-row">
-                <div className="form-group"><label>Cliente</label><select className="form-control" value={form.client_id} onChange={e => { const p = packages.filter(x => x.client_id === e.target.value); setForm({ ...form, client_id: e.target.value, package_id: p[0]?.id || '' }); }}><option value="">Selecione...</option>{clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
-                <div className="form-group"><label>Pacote</label><select className="form-control" value={form.package_id} onChange={e => setForm({ ...form, package_id: e.target.value })}><option value="">Selecione...</option>{cpf.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></div>
+              <div className="form-group">
+                <label>Título do Vídeo</label>
+                <input className="form-control" placeholder="Ex: Reel Behind the Scenes" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
               </div>
-              <div className="form-group"><label>Data Prevista</label><input type="date" className="form-control" value={form.planned_date} onChange={e => setForm({ ...form, planned_date: e.target.value })} /></div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Cliente</label>
+                  <select className="form-control" value={form.client_id} onChange={e => { const p = packages.filter(x => x.client_id === e.target.value); setForm({ ...form, client_id: e.target.value, package_id: p[0]?.id || '' }); }}>
+                    <option value="">Selecione...</option>
+                    {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Pacote</label>
+                  <select className="form-control" value={form.package_id} onChange={e => setForm({ ...form, package_id: e.target.value })}>
+                    <option value="">Selecione...</option>
+                    {cpf.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="form-group">
+                <label>Data Prevista</label>
+                <input type="date" className="form-control" value={form.planned_date} onChange={e => setForm({ ...form, planned_date: e.target.value })} />
+              </div>
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
-              <button className="btn btn-primary" onClick={saveVid} disabled={saving}>{saving ? 'Salvando...' : editVideoData ? 'Salvar' : 'Adicionar'}</button>
+              <button className="btn btn-primary" onClick={saveVid} disabled={saving || !form.title.trim() || !form.client_id}>
+                {saving ? 'Salvando...' : editVideoData ? 'Salvar' : 'Adicionar'}
+              </button>
             </div>
           </div>
         </div>

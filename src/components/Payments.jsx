@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  DollarSign, Plus, X, CreditCard, AlertCircle, CheckCircle, Clock, Undo2, ChevronLeft, ChevronRight, CalendarDays,
+  DollarSign, Plus, X, CreditCard, AlertCircle, CheckCircle, Clock, Undo2, ChevronLeft, ChevronRight, CalendarDays, Download,
 } from 'lucide-react';
 import { useToast } from './Toast';
 import ConfirmModal from './ConfirmModal';
@@ -121,6 +121,114 @@ export default function Payments({ clients, packages, payments, addPayment, dele
     }
   };
 
+  const handleGenerateReceipt = (pay, pkg) => {
+    const clientName = clients.find(c => c.id === pkg.client_id)?.name || 'Cliente Desconhecido';
+    import('jspdf').then(({ jsPDF }) => {
+      const doc = new jsPDF();
+      
+      const compName = user?.user_metadata?.company_name || 'Produtora Audiovisual';
+      const docType = user?.user_metadata?.document_type || 'CPF/CNPJ';
+      const docNum = user?.user_metadata?.document_number || 'Não informado';
+      const pix = user?.user_metadata?.pix_key || '';
+      const receiptDate = new Date(pay.date + 'T12:00').toLocaleDateString('pt-BR');
+      const receiptId = `REC-${Date.now().toString().slice(-6)}`;
+
+      // Colors
+      const primaryColor = [20, 20, 20];
+      const accentColor = [212, 135, 10]; // Amber
+      const textColor = [60, 60, 60];
+      const lightGray = [245, 245, 245];
+
+      // Top Bar Header
+      doc.setFillColor(...primaryColor);
+      doc.rect(0, 0, 210, 45, 'F');
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(26);
+      doc.text("RECIBO", 20, 28);
+      
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Nº ${receiptId}`, 165, 28);
+
+      // Value Block
+      doc.setFillColor(...lightGray);
+      doc.rect(20, 55, 170, 35, 'F');
+      
+      doc.setTextColor(120, 120, 120);
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.text("VALOR RECEBIDO", 105, 65, null, null, "center");
+
+      doc.setTextColor(...accentColor);
+      doc.setFontSize(24);
+      doc.text(`${cSym} ${pay.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 105, 80, null, null, "center");
+
+      // Details Setup
+      doc.setTextColor(...textColor);
+      doc.setFontSize(10);
+      
+      // Emitente Box
+      doc.setDrawColor(220, 220, 220);
+      doc.setFillColor(252, 252, 252);
+      doc.rect(20, 100, 80, 40, 'FD');
+      
+      doc.setFont("helvetica", "bold");
+      doc.text("EMITENTE", 25, 110);
+      doc.setFont("helvetica", "normal");
+      doc.text(compName, 25, 118);
+      doc.text(`${docType}: ${docNum}`, 25, 125);
+      doc.text(`Data: ${receiptDate}`, 25, 132);
+
+      // Cliente Box
+      doc.rect(110, 100, 80, 40, 'FD');
+      
+      doc.setFont("helvetica", "bold");
+      doc.text("PAGADOR", 115, 110);
+      doc.setFont("helvetica", "normal");
+      const clientLines = doc.splitTextToSize(clientName, 70);
+      doc.text(clientLines, 115, 118);
+
+      // Reference Area
+      doc.setFont("helvetica", "bold");
+      doc.text("REFERENTE A:", 20, 155);
+      doc.setFont("helvetica", "normal");
+      const titleLines = doc.splitTextToSize(pkg.title || pkg.name || 'Serviços Audiovisuais', 170);
+      doc.text(titleLines, 20, 162);
+      
+      if (pay.note) {
+        doc.setFont("helvetica", "italic");
+        doc.text(`Obs: ${pay.note}`, 20, 162 + (titleLines.length * 6));
+      }
+
+      // PIX info
+      if (pix) {
+        doc.setFillColor(...lightGray);
+        doc.rect(20, 180, 170, 20, 'F');
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.text("CHAVE PIX PARA FUTUROS PAGAMENTOS:", 25, 191);
+        doc.setFont("helvetica", "normal");
+        doc.text(pix, 100, 191);
+      }
+
+      // Signature Line
+      doc.setDrawColor(150, 150, 150);
+      doc.line(65, 250, 145, 250);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text(compName, 105, 258, null, null, "center");
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.text("Assinatura do Recebedor", 105, 263, null, null, "center");
+
+      // Generate & Save
+      doc.save(`Recibo_${clientName.split(' ')[0]}_${pay.amount}.pdf`);
+      toast.success('Recibo Profissional gerado!');
+    });
+  };
+
   return (
     <div className="fade-in">
       <div className="page-header">
@@ -210,6 +318,15 @@ export default function Payments({ clients, packages, payments, addPayment, dele
                         onMouseOut={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'none'; }}
                       >
                         <Undo2 size={13} />
+                      </button>
+                      <button
+                        onClick={() => handleGenerateReceipt(pay, pkg)}
+                        title="Baixar Recibo PDF"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--info)', padding: '0.15rem 0.35rem', borderRadius: 4, lineHeight: 1, flexShrink: 0, transition: 'all 0.2s', display: 'flex', alignItems: 'center' }}
+                        onMouseOver={e => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'rgba(96,165,250,0.1)'; }}
+                        onMouseOut={e => { e.currentTarget.style.color = 'var(--info)'; e.currentTarget.style.background = 'none'; }}
+                      >
+                        <Download size={13} />
                       </button>
                     </div>
                   ))}

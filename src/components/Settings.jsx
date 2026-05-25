@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Settings as SettingsIcon, User, Lock, Image as ImageIcon, Save, Building, DollarSign, FileText, Smartphone, Check, X } from 'lucide-react';
+import { Settings as SettingsIcon, User, Lock, Image as ImageIcon, Save, Building, DollarSign, FileText, Smartphone, Check, X, UploadCloud } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from './Toast';
+import { supabase } from '../lib/supabase';
 
 export default function Settings() {
   const { user, updateProfile } = useAuth();
@@ -16,6 +17,39 @@ export default function Settings() {
   const [pixKey, setPixKey] = useState(user?.user_metadata?.pix_key || '');
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [loadingBusiness, setLoadingBusiness] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  const handleAvatarUpload = async (event) => {
+    try {
+      if (!event.target.files || event.target.files.length === 0) {
+        return;
+      }
+      const file = event.target.files[0];
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      setUploadingAvatar(true);
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
+      
+      setAvatarUrl(data.publicUrl);
+      toast.success('Imagem enviada! Clique em Salvar Perfil.');
+    } catch (error) {
+      toast.error('Erro no upload. Lembre-se de criar o bucket "avatars" como Público no Supabase.');
+      console.error(error);
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -198,12 +232,21 @@ export default function Settings() {
                   <input type="text" className="form-control" value={name} onChange={e => setName(e.target.value)} placeholder="Seu nome" />
                 </div>
                 <div className="form-group">
-                  <label>URL do Avatar (Foto)</label>
+                  <label>Foto de Perfil (Avatar)</label>
                   <div style={{ position: 'relative' }}>
-                    <ImageIcon size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                    <input type="url" className="form-control" value={avatarUrl} onChange={e => setAvatarUrl(e.target.value)} placeholder="https://exemplo.com/foto.jpg" style={{ paddingLeft: '2.5rem' }} />
+                    <UploadCloud size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                    <input 
+                      type="file" 
+                      accept="image/*"
+                      className="form-control" 
+                      onChange={handleAvatarUpload} 
+                      disabled={uploadingAvatar}
+                      style={{ paddingLeft: '2.5rem', paddingTop: '0.45rem' }} 
+                    />
                   </div>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>Cole o link direto de uma imagem para usar como seu avatar.</p>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
+                    {uploadingAvatar ? 'Enviando imagem para o servidor...' : 'Selecione uma imagem do seu computador para o avatar.'}
+                  </p>
                 </div>
               </div>
             </div>

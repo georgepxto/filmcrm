@@ -80,10 +80,17 @@ function AppLayout() {
 
   return (
     <>
-      {/* Mobile toggle */}
-      <button className="mobile-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
-        {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-      </button>
+      {/* Mobile toggle — only visible when sidebar is closed */}
+      {!sidebarOpen && (
+        <button className="mobile-toggle" onClick={() => setSidebarOpen(true)}>
+          <Menu size={20} />
+        </button>
+      )}
+
+      {/* Overlay to close sidebar by tapping outside */}
+      {sidebarOpen && (
+        <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />
+      )}
 
       <div className="app-layout">
         {/* Sidebar */}

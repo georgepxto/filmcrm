@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+﻿import { useState, useMemo, useEffect } from 'react';
 import {
   Film, Plus, X, Calendar, CheckSquare, Square, Search,
   Trash2, Edit3, MessageCircle, Clock, ClipboardList, User, CheckCircle, Activity,
@@ -169,11 +169,12 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
       </div>
 
       {/* Main Grid Layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '2rem', alignItems: 'start' }}>
+      <div className="post-layout">
         
         {/* LEFT COLUMN: TABLE AND FILTERS */}
         <div style={{ minWidth: 0 }}>
 
+          <div className="post-desktop-table">
           {/* Table */}
           <div style={{
             background: 'var(--bg-card)', border: '1px solid var(--border)',
@@ -190,7 +191,7 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
             }}>
               <div style={{ ...colTask, display: 'flex', alignItems: 'center', gap: '6px' }}><ClipboardList size={14} /> Tarefa</div>
               <div style={{ ...colClient, display: 'flex', alignItems: 'center', gap: '6px' }}><User size={14} /> Cliente</div>
-              <div style={{ ...colDone, alignItems: 'center', gap: '6px' }}><CheckCircle size={14} /> Done</div>
+              <div style={{ ...colDone, alignItems: 'center', gap: '6px' }}><CheckCircle size={14} /> Feito</div>
               <div style={{ ...colProgress, alignItems: 'center', gap: '6px' }}><Activity size={14} /> Progresso</div>
               <div style={{ ...colDate, display: 'flex', alignItems: 'center', gap: '6px' }}><Calendar size={14} /> Previsão</div>
               <div style={{ ...colActions }}></div>
@@ -290,7 +291,7 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
                     </div>
 
                     {/* Actions */}
-                    <div style={{ ...colActions, alignItems: 'center', gap: '0.25rem', opacity: isHovered ? 1 : 0, transition: 'opacity 0.15s' }}>
+                    <div className="post-row-actions" style={{ ...colActions, alignItems: 'center', gap: '0.25rem', opacity: isHovered ? 1 : 0, transition: 'opacity 0.15s' }}>
                       <button onClick={() => openModal(v)} title="Editar"
                         style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.25rem', borderRadius: '4px' }}
                         onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
@@ -316,9 +317,57 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 fontSize: '0.73rem', color: 'var(--text-muted)', background: 'var(--bg-secondary)'
               }}>
-                <span>COUNT <strong style={{ color: 'var(--text-primary)' }}>{filtered.length}</strong></span>
+                <span>TOTAL <strong style={{ color: 'var(--text-primary)' }}>{filtered.length}</strong></span>
                 <span>{doneCount} de {videos.length} concluídos</span>
               </div>
+            )}
+          </div>
+          </div>{/* /post-desktop-table */}
+
+          {/* Mobile card list */}
+          <div className="post-mobile-list">
+            {filtered.length === 0 ? (
+              <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <Film size={40} style={{ marginBottom: '0.75rem', opacity: 0.3 }} />
+                <p style={{ fontSize: '0.85rem' }}>Nenhum vídeo encontrado</p>
+                <button className="btn btn-primary btn-sm" style={{ marginTop: '0.75rem' }} onClick={() => openModal()}>
+                  <Plus size={14} /> Criar primeiro vídeo
+                </button>
+              </div>
+            ) : (
+              filtered.map(v => {
+                const status = getStatus(v);
+                const overdue = v.planned_date && !v.posted && new Date(v.planned_date + 'T23:59:59') < new Date();
+                return (
+                  <div
+                    key={v.id}
+                    className="card"
+                    style={{ padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', opacity: v.posted ? 0.6 : 1 }}
+                    onClick={() => cycleStatus(v.id)}
+                  >
+                    <div style={{ flex: 1, overflow: 'hidden' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '0.88rem', fontWeight: 500, color: v.posted ? 'var(--text-muted)' : 'var(--text-primary)', textDecoration: v.posted ? 'line-through' : 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {v.title}
+                        </span>
+                        {overdue && <span style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--danger)', padding: '0.1rem 0.35rem', background: 'rgba(239,68,68,0.1)', borderRadius: '4px', flexShrink: 0 }}>ATRASADO</span>}
+                      </div>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{getName(v.client_id)}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 600, color: status.color, background: status.bg, padding: '0.25rem 0.6rem', borderRadius: '100px', whiteSpace: 'nowrap' }}>
+                        {status.label}
+                      </span>
+                      <button onClick={e => { e.stopPropagation(); openModal(v); }} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.25rem' }}>
+                        <Edit3 size={13} />
+                      </button>
+                      <button onClick={e => { e.stopPropagation(); handleDelete(v.id); }} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.25rem' }}>
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
         </div>

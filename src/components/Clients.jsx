@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  Users, Plus, X, Package, Phone, Mail, AlertTriangle,
+  Users, Plus, X, Package, Phone, Mail, AlertTriangle, ChevronLeft,
   Pause, CheckCircle, Play, Edit, MessageCircle, Link as LinkIcon, Bookmark, Trash2, LayoutGrid, List, Search,
   Repeat, Clock, DollarSign, Music, Video, Image as ImageIcon, Globe, ExternalLink
 } from 'lucide-react';
@@ -282,7 +282,7 @@ export default function Clients({ clients, packages, references, addClient, upda
                           </div>
                         )}
 
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: '0.5rem', marginTop: '0.75rem', fontSize: '0.72rem' }}>
+                        <div className="pkg-stats-grid">
                           <div>
                             <div className="text-muted">Total</div>
                             <div style={{ fontWeight: 600, fontSize: '1rem' }}>{pkg.total_videos}</div>
@@ -423,7 +423,7 @@ export default function Clients({ clients, packages, references, addClient, upda
 
   return (
     <div className="fade-in">
-      <div className="page-header" style={{ alignItems: 'center', flexWrap: 'wrap' }}>
+      <div className="page-header">
         <h2><Users size={24} /> Clientes & Pacotes</h2>
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <div className="search-input" style={{ position: 'relative' }}>
@@ -456,17 +456,26 @@ export default function Clients({ clients, packages, references, addClient, upda
           {filteredClients.map(c => renderClientItem(c, 'grid'))}
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '1.5rem', alignItems: 'start' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: 'calc(100vh - 150px)', overflowY: 'auto', paddingRight: '0.5rem' }}>
+        <div className={`clients-list-layout${selectedClient ? ' has-selected' : ''}`}>
+          <div className="clients-list-sidebar">
             {filteredClients.length === 0 ? (
               <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textAlign: 'center', marginTop: '2rem' }}>Nenhum cliente encontrado.</p>
             ) : (
               filteredClients.map(c => renderClientItem(c, 'list-item'))
             )}
           </div>
-          <div style={{ position: 'sticky', top: '2rem' }}>
+          <div className="clients-list-detail">
             {selectedClient && clients.find(c => c.id === selectedClient) ? (
-              renderClientItem(clients.find(c => c.id === selectedClient), 'list-detail')
+              <>
+                <button
+                  className="btn btn-secondary btn-sm mobile-back-btn"
+                  onClick={() => setSelectedClient(null)}
+                  style={{ marginBottom: '1rem' }}
+                >
+                  <ChevronLeft size={14} /> Voltar à lista
+                </button>
+                {renderClientItem(clients.find(c => c.id === selectedClient), 'list-detail')}
+              </>
             ) : (
               <div className="card" style={{ padding: '4rem 2rem', textAlign: 'center', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <Users size={48} style={{ opacity: 0.2, marginBottom: '1rem' }} />

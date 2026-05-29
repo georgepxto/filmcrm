@@ -3,7 +3,7 @@
    ═══════════════════════════════════════════════════════════ */
 
 :root {
-  --bg-primary: #0a0a0a;
+  --bg-primary: #000000;
   --bg-secondary: #111111;
   --bg-card: #161616;
   --bg-card-hover: #1c1c1c;
@@ -684,6 +684,19 @@ tbody tr:hover { background: var(--bg-card-hover); }
   cursor: pointer;
 }
 
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+}
+
+@media (max-width: 768px) {
+  .sidebar-overlay { display: block; }
+}
+
 /* ── Responsive ── */
 @media (max-width: 900px) {
   .summary-cards { grid-template-columns: 1fr 1fr; }
@@ -691,6 +704,9 @@ tbody tr:hover { background: var(--bg-card-hover); }
 }
 
 @media (max-width: 768px) {
+  /* Prevent iOS Safari auto-zoom on input focus (triggers when font-size < 16px) */
+  input, select, textarea { font-size: 16px !important; }
+
   .mobile-toggle { display: flex; }
   .sidebar { transform: translateX(-100%); }
   .sidebar.open { transform: translateX(0); }
@@ -1424,4 +1440,55 @@ input:checked + .toggle-slider:before {
 .btn-icon:hover {
   background: rgba(255,255,255,0.1);
   border-color: rgba(255,255,255,0.1);
+}
+
+/* ── Clients List Layout ── */
+.clients-list-layout {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+.clients-list-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: calc(100vh - 150px);
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+.clients-list-detail { position: sticky; top: 2rem; }
+.pkg-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  font-size: 0.72rem;
+}
+.mobile-back-btn { display: none; }
+
+@media (max-width: 768px) {
+  .clients-list-layout { grid-template-columns: 1fr; }
+  .clients-list-sidebar { max-height: 55vh; }
+  .clients-list-layout:not(.has-selected) .clients-list-detail { display: none; }
+  .clients-list-layout.has-selected .clients-list-sidebar { display: none; }
+  .clients-list-detail { position: static; }
+  .pkg-stats-grid { grid-template-columns: repeat(3, 1fr); }
+  .mobile-back-btn { display: inline-flex; }
+}
+
+/* ── PostControl Layout ── */
+.post-layout {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 2rem;
+  align-items: start;
+}
+.post-desktop-table { display: block; }
+.post-mobile-list { display: none; }
+
+@media (max-width: 768px) {
+  .post-layout { grid-template-columns: 1fr; }
+  .post-desktop-table { display: none; }
+  .post-mobile-list { display: flex; flex-direction: column; gap: 0.5rem; }
 }

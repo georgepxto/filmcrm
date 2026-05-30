@@ -540,14 +540,14 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
                 <div className="form-group">
                   <label>Cliente</label>
                   <select className="form-control" value={form.client_id} onChange={e => { const p = packages.filter(x => x.client_id === e.target.value); setForm({ ...form, client_id: e.target.value, package_id: p[0]?.id || '' }); }}>
-                    <option value="">Selecione...</option>
+                    <option value="">Selecione um cliente...</option>
                     {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
                 <div className="form-group">
                   <label>Pacote</label>
                   <select className="form-control" value={form.package_id} onChange={e => setForm({ ...form, package_id: e.target.value })}>
-                    <option value="">Selecione...</option>
+                    <option value="">Selecione um pacote...</option>
                     {cpf.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
                 </div>

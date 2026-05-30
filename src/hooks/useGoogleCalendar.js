@@ -5,8 +5,8 @@ import { useAuth } from '../contexts/AuthContext';
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const SCOPES = 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly';
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
-const LS_TOKEN_KEY = 'filmcrm_gcal_token';
-const LS_EXPIRY_KEY = 'filmcrm_gcal_expiry';
+const LS_TOKEN_KEY = 'takeone_gcal_token';
+const LS_EXPIRY_KEY = 'takeone_gcal_expiry';
 const REFRESH_MARGIN_MS = 5 * 60 * 1000; // Refresh 5 min before expiry
 
 /**
@@ -208,7 +208,7 @@ export function useGoogleCalendar() {
         maxResults: 250,
       });
       const items = (response.result.items || []).filter(ev => {
-        // Skip events created by FilmmakerCRM to avoid duplicates
+        // Skip events created by TakeOne to avoid duplicates
         const desc = (ev.description || '').toLowerCase();
         const summary = ev.summary || '';
         if (desc.includes('filmmakercrm')) return false;

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   Users, Plus, X, Package, AlertTriangle, ChevronLeft,
   Edit, MessageCircle, Bookmark, Trash2, LayoutGrid, List, Search,
-  DollarSign, ExternalLink, Mail,
+  DollarSign, ExternalLink, Mail, FileText,
 } from 'lucide-react';
 import { useToast } from './Toast';
 import { useAuth } from '../contexts/AuthContext';
@@ -112,6 +112,11 @@ export default function Clients({
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteClientConfirm, setDeleteClientConfirm] = useState(null);
   const [deleteRefConfirm, setDeleteRefConfirm] = useState(null);
+  const [proposalModal, setProposalModal] = useState(null);
+  const [proposalPkgs, setProposalPkgs] = useState([]);
+  const [proposalNote, setProposalNote] = useState('');
+  const [proposalValidity, setProposalValidity] = useState(30);
+  const [generatingPDF, setGeneratingPDF] = useState(false);
 
   const emptyClient = { name: '', contact: '', email: '' };
   const emptyPackage = { client_id: '', name: '', total_videos: 4, edited: 0, delivered: 0, posted: 0, status: 'Ativo', value: '', paid: 0, start_date: new Date().toISOString().slice(0, 10), end_date: '', billing_cycle: 'Mensal' };
@@ -375,6 +380,149 @@ export default function Clients({
     </div>
   );
 
+  /* ── Proposal ── */
+  const openProposalModal = (client) => {
+    const active = packages.filter(p => p.client_id === client.id && p.status === 'Ativo').map(p => p.id);
+    const all = packages.filter(p => p.client_id === client.id).map(p => p.id);
+    setProposalPkgs(active.length > 0 ? active : all);
+    setProposalNote('');
+    setProposalValidity(30);
+    setProposalModal(client);
+  };
+
+  const generateProposalPDF = () => {
+    const c = proposalModal;
+    const selPkgs = packages.filter(p => proposalPkgs.includes(p.id));
+    if (selPkgs.length === 0) return;
+    setGeneratingPDF(true);
+    import('jspdf').then(({ jsPDF }) => {
+      const doc = new jsPDF();
+      const compName = user?.user_metadata?.company_name || user?.user_metadata?.full_name || 'Produtora Audiovisual';
+      const docType = user?.user_metadata?.document_type || 'CPF/CNPJ';
+      const docNum = user?.user_metadata?.document_number || '';
+      const pixKey = user?.user_metadata?.pix_key || '';
+      const proposalId = `PROP-${Date.now().toString().slice(-6)}`;
+      const today = new Date();
+      const todayStr = today.toLocaleDateString('pt-BR');
+      const validUntil = new Date(today);
+      validUntil.setDate(validUntil.getDate() + proposalValidity);
+      const validUntilStr = validUntil.toLocaleDateString('pt-BR');
+      const totalValue = selPkgs.reduce((s, p) => s + (p.value || 0), 0);
+      const dark = [18, 17, 15]; const amber = [212, 135, 10];
+      const gray = [248, 247, 245]; const textDark = [40, 38, 35]; const textMuted = [130, 126, 120];
+
+      // Header
+      doc.setFillColor(...dark); doc.rect(0, 0, 210, 42, 'F');
+      doc.setFillColor(...amber); doc.rect(0, 42, 210, 2, 'F');
+      doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(22);
+      doc.text('PROPOSTA COMERCIAL', 20, 24);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(190, 183, 170);
+      doc.text(proposalId, 190, 16, { align: 'right' });
+      doc.text(`Data: ${todayStr}`, 190, 24, { align: 'right' });
+      doc.setFontSize(9.5); doc.setTextColor(165, 158, 145);
+      doc.text(compName, 20, 36);
+
+      // DE / PARA boxes
+      let y = 56;
+      doc.setFillColor(...gray); doc.roundedRect(20, y, 80, 36, 2, 2, 'F');
+      doc.setTextColor(...textMuted); doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5);
+      doc.text('DE', 28, y + 8);
+      doc.setTextColor(...textDark); doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+      doc.text(doc.splitTextToSize(compName, 68)[0], 28, y + 17);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...textMuted);
+      if (docNum) doc.text(`${docType}: ${docNum}`, 28, y + 25);
+
+      doc.setFillColor(...gray); doc.roundedRect(110, y, 80, 36, 2, 2, 'F');
+      doc.setTextColor(...textMuted); doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5);
+      doc.text('PARA', 118, y + 8);
+      doc.setTextColor(...textDark); doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+      doc.text(doc.splitTextToSize(c.name, 66)[0], 118, y + 17);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...textMuted);
+      if (c.contact) doc.text(c.contact, 118, y + 25);
+      if (c.email) doc.text(doc.splitTextToSize(c.email, 66)[0], 118, y + 31);
+      y += 46;
+
+      // Services table
+      doc.setTextColor(...textMuted); doc.setFont('helvetica', 'bold'); doc.setFontSize(7);
+      doc.text('SERVIÇOS PROPOSTOS', 20, y); y += 6;
+
+      doc.setFillColor(...dark); doc.rect(20, y, 170, 9, 'F');
+      doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5);
+      doc.text('PACOTE / SERVIÇO', 25, y + 6);
+      doc.text('VÍDEOS', 120, y + 6);
+      doc.text('CICLO', 143, y + 6);
+      doc.text('VALOR', 188, y + 6, { align: 'right' });
+      y += 9;
+
+      selPkgs.forEach((pkg, i) => {
+        if (i % 2 === 0) { doc.setFillColor(252, 251, 249); doc.rect(20, y, 170, 10, 'F'); }
+        doc.setTextColor(...textDark); doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
+        doc.text(doc.splitTextToSize(pkg.name, 88)[0], 25, y + 7);
+        doc.text(String(pkg.total_videos || '—'), 123, y + 7);
+        doc.text(pkg.billing_cycle || 'Único', 143, y + 7);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`${cSym} ${(pkg.value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 188, y + 7, { align: 'right' });
+        y += 10;
+      });
+      doc.setDrawColor(220, 218, 214); doc.setLineWidth(0.3);
+      doc.rect(20, y - selPkgs.length * 10 - 9, 170, selPkgs.length * 10 + 9);
+
+      // Total
+      y += 3; doc.setFillColor(...amber); doc.rect(20, y, 170, 12, 'F');
+      doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(10.5);
+      doc.text('TOTAL', 25, y + 8.5);
+      doc.text(`${cSym} ${totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 188, y + 8.5, { align: 'right' });
+      y += 20;
+
+      // Payment conditions
+      doc.setTextColor(...textMuted); doc.setFont('helvetica', 'bold'); doc.setFontSize(7);
+      doc.text('CONDIÇÕES DE PAGAMENTO', 20, y); y += 6;
+      const cycles = [...new Set(selPkgs.map(p => p.billing_cycle).filter(Boolean))];
+      const condH = pixKey ? 22 : 14;
+      doc.setFillColor(...gray); doc.roundedRect(20, y, 170, condH, 2, 2, 'F');
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...textDark);
+      doc.text(`Ciclo de cobrança: ${cycles.length > 0 ? cycles.join(', ') : 'A combinar'}`, 28, y + 9);
+      if (pixKey) {
+        doc.setTextColor(...textMuted); doc.text('Chave PIX: ', 28, y + 17);
+        doc.setTextColor(...textDark); doc.setFont('helvetica', 'bold');
+        doc.text(pixKey, 58, y + 17);
+      }
+      y += condH + 10;
+
+      // Notes
+      if (proposalNote.trim()) {
+        doc.setTextColor(...textMuted); doc.setFont('helvetica', 'bold'); doc.setFontSize(7);
+        doc.text('OBSERVAÇÕES', 20, y); y += 6;
+        const noteLines = doc.splitTextToSize(proposalNote.trim(), 158);
+        const noteH = noteLines.length * 5 + 10;
+        doc.setFillColor(...gray); doc.roundedRect(20, y, 170, noteH, 2, 2, 'F');
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...textDark);
+        doc.text(noteLines, 28, y + 8);
+        y += noteH + 10;
+      }
+
+      // Validity banner
+      doc.setFillColor(255, 248, 232); doc.setDrawColor(...amber); doc.setLineWidth(0.5);
+      doc.roundedRect(20, y, 170, 12, 2, 2, 'FD');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(...amber);
+      doc.text(`Proposta valida ate: ${validUntilStr}`, 105, y + 8, { align: 'center' });
+
+      // Footer
+      doc.setDrawColor(180, 175, 168); doc.setLineWidth(0.4);
+      doc.line(62, 270, 148, 270);
+      doc.setTextColor(...textDark); doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+      doc.text(compName, 105, 278, { align: 'center' });
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...textMuted);
+      doc.text('Assinatura do Responsavel', 105, 284, { align: 'center' });
+      doc.setFillColor(...amber); doc.rect(0, 290, 210, 7, 'F');
+
+      doc.save(`Proposta_${c.name.split(' ')[0]}_${proposalId}.pdf`);
+      toast.success('Proposta gerada com sucesso!');
+      setGeneratingPDF(false);
+      setProposalModal(null);
+    }).catch(() => { toast.error('Erro ao gerar PDF'); setGeneratingPDF(false); });
+  };
+
   /* ── Client Item (3 modes) ── */
   const renderClientItem = (c, mode) => {
     const clientPkgs = packages.filter(p => p.client_id === c.id);
@@ -549,9 +697,20 @@ export default function Clients({
           <SecLabel>
             Histórico · {clientPkgs.length} pacote{clientPkgs.length !== 1 ? 's' : ''} fechado{clientPkgs.length !== 1 ? 's' : ''}
           </SecLabel>
-          <OutlineBtn onClick={e => { e.stopPropagation(); openPkgModal(c.id); }}>
-            <Plus size={12} /> Pacote
-          </OutlineBtn>
+          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+            <button
+              onClick={e => { e.stopPropagation(); openProposalModal(c); }}
+              title="Gerar proposta PDF"
+              style={{ background: 'none', border: '0.5px solid var(--border-light)', borderRadius: 5, color: 'var(--text-muted)', cursor: 'pointer', padding: '0.28rem 0.6rem', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontFamily: 'var(--font-body)', transition: 'color 0.18s, border-color 0.18s' }}
+              onMouseEnter={e => { e.currentTarget.style.color = 'var(--amber)'; e.currentTarget.style.borderColor = 'rgba(212,135,10,0.4)'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.borderColor = 'var(--border-light)'; }}
+            >
+              <FileText size={11} /> Proposta
+            </button>
+            <OutlineBtn onClick={e => { e.stopPropagation(); openPkgModal(c.id); }}>
+              <Plus size={12} /> Pacote
+            </OutlineBtn>
+          </div>
         </div>
 
         {/* Packages list */}
@@ -885,6 +1044,90 @@ export default function Clients({
           </div>
         );
       })()}
+
+      {/* ── Proposal Modal ── */}
+      {proposalModal && (
+        <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setProposalModal(null); }}>
+          <div className="modal" style={{ maxWidth: 500 }}>
+            <div className="modal-header">
+              <h3 style={{ fontWeight: 400 }}>Proposta — {proposalModal.name}</h3>
+              <button className="modal-close" onClick={() => setProposalModal(null)}><X size={18} /></button>
+            </div>
+            <div className="modal-body">
+
+              {/* Package selection */}
+              <div className="form-group">
+                <label>Pacotes incluídos na proposta</label>
+                {packages.filter(p => p.client_id === proposalModal.id).length === 0 ? (
+                  <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Nenhum pacote cadastrado para este cliente.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem', marginTop: '0.25rem' }}>
+                    {packages.filter(p => p.client_id === proposalModal.id).map(pkg => (
+                      <label key={pkg.id} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', padding: '0.55rem 0.75rem', borderRadius: 6, cursor: 'pointer', background: proposalPkgs.includes(pkg.id) ? 'rgba(212,135,10,0.05)' : 'transparent', border: `0.5px solid ${proposalPkgs.includes(pkg.id) ? 'rgba(212,135,10,0.25)' : 'var(--border)'}`, transition: 'background 0.15s' }}>
+                        <input
+                          type="checkbox"
+                          checked={proposalPkgs.includes(pkg.id)}
+                          onChange={e => setProposalPkgs(prev => e.target.checked ? [...prev, pkg.id] : prev.filter(id => id !== pkg.id))}
+                          style={{ accentColor: 'var(--amber)', flexShrink: 0 }}
+                        />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 500 }}>{pkg.name}</span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>
+                            {pkg.total_videos} vídeos · {cSym} {(pkg.value || 0).toLocaleString('pt-BR')}
+                          </span>
+                        </div>
+                        <span style={{ fontSize: '0.65rem', color: pkg.status === 'Ativo' ? 'var(--success)' : 'var(--text-muted)', fontWeight: 600, flexShrink: 0 }}>
+                          {pkg.status}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Validity */}
+              <div className="form-group">
+                <label>Validade da proposta (dias)</label>
+                <input
+                  type="number" className="form-control" min={1} max={365}
+                  value={proposalValidity}
+                  onChange={e => setProposalValidity(Math.max(1, Number(e.target.value)))}
+                  style={{ maxWidth: 120 }}
+                />
+              </div>
+
+              {/* Notes */}
+              <div className="form-group">
+                <label>Observações <span style={{ fontWeight: 400, opacity: 0.5, textTransform: 'none', letterSpacing: 0 }}>(opcional)</span></label>
+                <textarea
+                  className="form-control" rows={3}
+                  placeholder="Condições especiais, inclui deslocamento, forma de entrega..."
+                  value={proposalNote}
+                  onChange={e => setProposalNote(e.target.value)}
+                />
+              </div>
+
+              {/* Total preview */}
+              {proposalPkgs.length > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', background: 'var(--bg-elevated)', borderRadius: 6, border: '0.5px solid var(--border)' }}>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                    {proposalPkgs.length} pacote{proposalPkgs.length !== 1 ? 's' : ''} selecionado{proposalPkgs.length !== 1 ? 's' : ''}
+                  </span>
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', color: 'var(--amber)', letterSpacing: '-0.01em' }}>
+                    {cSym} {packages.filter(p => proposalPkgs.includes(p.id)).reduce((s, p) => s + (p.value || 0), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setProposalModal(null)}>Cancelar</button>
+              <OutlineBtn onClick={generateProposalPDF} disabled={proposalPkgs.length === 0 || generatingPDF}>
+                {generatingPDF ? 'Gerando...' : 'Baixar PDF'}
+              </OutlineBtn>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Delete client confirm ── */}
       {deleteClientConfirm && (

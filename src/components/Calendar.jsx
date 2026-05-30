@@ -215,7 +215,7 @@ export default function Calendar({ clients, sessions, addSession, updateSession,
         if (gcal.isSignedIn && syncToGoogle && editSession.google_event_id) {
           await gcal.updateEvent(editSession.google_event_id, {
             summary: form.client_id ? `📹 ${clientName} — ${form.service}` : `📅 ${clientName}`,
-            description: `Via FilmmakerCRM\n${form.client_id ? `Cliente: ${clientName}\nServiço: ${form.service}\nStatus: ${form.status}` : 'Evento Pessoal'}`,
+            description: `Via TakeOne\n${form.client_id ? `Cliente: ${clientName}\nServiço: ${form.service}\nStatus: ${form.status}` : 'Evento Pessoal'}`,
             date: dateStr, timeStart: form.is_all_day ? null : form.time_start, timeEnd: form.is_all_day ? null : form.time_end,
           });
           fetchGoogleEvents();
@@ -236,7 +236,7 @@ export default function Calendar({ clients, sessions, addSession, updateSession,
         if (gcal.isSignedIn && syncToGoogle) {
           const gcalResult = await gcal.createEvent({
             summary: form.client_id ? `📹 ${clientName} — ${form.service}` : `📅 ${clientName}`,
-            description: `Via FilmmakerCRM\n${form.client_id ? `Cliente: ${clientName}\nServiço: ${form.service}\nStatus: ${form.status}` : 'Evento Pessoal'}`,
+            description: `Via TakeOne\n${form.client_id ? `Cliente: ${clientName}\nServiço: ${form.service}\nStatus: ${form.status}` : 'Evento Pessoal'}`,
             date: dateStr, timeStart: form.is_all_day ? null : form.time_start, timeEnd: form.is_all_day ? null : form.time_end,
           });
           if (gcalResult?.id) {

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Eye, EyeOff, Loader } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import BrandLogo from './BrandLogo';
 
 export default function Login() {
   const { signIn, signUp, resetPassword } = useAuth();
@@ -65,7 +66,7 @@ export default function Login() {
         <div className="login-branding">
           <div className="login-branding-content">
             <div className="login-logo">
-              <h1>Film<span>CRM</span></h1>
+              <h1><BrandLogo /></h1>
             </div>
             <p className="login-tagline">Gestão Cinematográfica</p>
             <div className="login-features">

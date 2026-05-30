@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ThemeProvider } from './contexts/ThemeContext';
-import { Menu, Clapperboard, LogOut, Loader } from 'lucide-react';
+import { Menu, LogOut, Loader } from 'lucide-react';
+import BrandLogo from './components/BrandLogo';
 import {
   BrowserRouter, Routes, Route, NavLink, Navigate, useNavigate, useLocation
 } from 'react-router-dom';
@@ -114,7 +115,7 @@ function AppLayout() {
         {/* Sidebar */}
         <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
           <div className="sidebar-logo">
-            <h1><Clapperboard size={18} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle', color: 'var(--text-muted)', opacity: 0.6 }} />Film<span>CRM</span></h1>
+            <h1><BrandLogo /></h1>
             <p>Gestão Cinematográfica</p>
           </div>
           <nav className="sidebar-nav">

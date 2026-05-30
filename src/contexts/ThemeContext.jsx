@@ -5,7 +5,7 @@ export const useTheme = () => useContext(ThemeContext);
 
 export function ThemeProvider({ children }) {
   const [theme, setThemeState] = useState(
-    () => localStorage.getItem('filmcrm-theme') || 'dark'
+    () => localStorage.getItem('takeone-theme') || 'dark'
   );
 
   useEffect(() => {
@@ -15,7 +15,7 @@ export function ThemeProvider({ children }) {
     } else {
       root.classList.remove('light');
     }
-    localStorage.setItem('filmcrm-theme', theme);
+    localStorage.setItem('takeone-theme', theme);
   }, [theme]);
 
   const setTheme = (t) => setThemeState(t);

@@ -87,7 +87,7 @@ export default function Payments({ clients, packages, payments, addPayment, dele
   const savePayment = async () => {
     const amount = Number(form.amount);
     const owed = selectedPkg ? Math.max(0, selectedPkg.value - selectedPkg.paid) : 0;
-    if (!amount || amount <= 0) return;
+    if (!amount || amount <= 0) { toast.error('Informe um valor maior que zero'); return; }
     if (amount > owed) {
       toast.error(`Valor excede o saldo devedor (${cSym} ${owed.toLocaleString('pt-BR')})`);
       return;
@@ -105,7 +105,7 @@ export default function Payments({ clients, packages, payments, addPayment, dele
     if (result) {
       toast.success(`Pagamento de ${cSym} ${amount.toLocaleString('pt-BR')} registrado`);
     } else {
-      toast.error('Erro ao registrar pagamento');
+      toast.error('Não foi possível registrar o pagamento. Tente novamente.');
     }
   };
 
@@ -117,7 +117,7 @@ export default function Payments({ clients, packages, payments, addPayment, dele
     if (result) {
       toast.success(`Pagamento de ${cSym} ${pay.amount.toLocaleString('pt-BR')} desfeito`);
     } else {
-      toast.error('Erro ao desfazer pagamento');
+      toast.error('Não foi possível desfazer o pagamento. Tente novamente.');
     }
   };
 

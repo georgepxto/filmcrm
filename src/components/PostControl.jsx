@@ -141,7 +141,7 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
     if (video) {
       setForm({ client_id: video.client_id, package_id: video.package_id || '', title: video.title, edited: video.edited, delivered: video.delivered, posted: video.posted, planned_date: video.planned_date || '' });
     } else {
-      const cId = filterClient || clients[0]?.id || '';
+      const cId = filterClient || '';
       const cp = packages.filter(p => p.client_id === cId);
       setForm({ ...emptyForm, client_id: cId, package_id: cp[0]?.id || '' });
     }
@@ -149,17 +149,24 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
   };
 
   const saveVid = async () => {
-    if (!form.title.trim() || !form.client_id) return;
+    if (!form.title.trim()) { toast.error('Informe o título do vídeo'); return; }
+    if (!form.client_id) { toast.error('Selecione um cliente'); return; }
+    if (!form.package_id) { toast.error('Selecione um pacote para vincular o vídeo'); return; }
+    // Sanitize: empty string in a date column causes 400 from Supabase
+    const payload = { ...form, planned_date: form.planned_date || null };
     setSaving(true);
+    let ok = false;
     if (editVideoData) {
-      const result = await updateVideo(editVideoData.id, form);
-      result ? toast.success('Vídeo atualizado') : toast.error('Erro ao atualizar');
+      const result = await updateVideo(editVideoData.id, payload);
+      if (result) { toast.success('Vídeo atualizado'); ok = true; }
+      else toast.error('Não foi possível atualizar o vídeo. Tente novamente.');
     } else {
-      const result = await addVideo(form);
-      result ? toast.success(`"${form.title}" adicionado`) : toast.error('Erro ao adicionar');
+      const result = await addVideo(payload);
+      if (result) { toast.success(`"${form.title}" adicionado ao pipeline`); ok = true; }
+      else toast.error('Não foi possível adicionar o vídeo. Tente novamente.');
     }
     setSaving(false);
-    setShowModal(false);
+    if (ok) setShowModal(false);
   };
 
   const handleDelete = async (id) => {
@@ -486,8 +493,9 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
           {history.length > 0 && (
             <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '1.25rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: 'var(--text-primary)', flexWrap: 'wrap' }}>
                   <Clock size={16} color="var(--amber)" /> Histórico da Sessão
+                  <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 400, fontFamily: 'var(--font-body)' }}>(expira em 24h)</span>
                 </h4>
                 <button onClick={() => setHistory([])} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.7rem' }}>
                   Limpar
@@ -551,7 +559,7 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
-              <button className="btn btn-primary" onClick={saveVid} disabled={saving || !form.title.trim() || !form.client_id}>
+              <button className="btn btn-primary" onClick={saveVid} disabled={saving}>
                 {saving ? 'Salvando...' : editVideoData ? 'Salvar' : 'Adicionar'}
               </button>
             </div>

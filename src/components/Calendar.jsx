@@ -130,7 +130,7 @@ export default function Calendar({ clients, sessions, addSession, updateSession,
   };
 
   const handleCreateClient = async () => {
-    if (!newClientForm.name.trim()) return;
+    if (!newClientForm.name.trim()) { toast.error('Informe o nome do cliente'); return; }
     setSavingClient(true);
     const result = await addClient(newClientForm);
     if (result) {
@@ -139,18 +139,20 @@ export default function Calendar({ clients, sessions, addSession, updateSession,
       setNewClientForm({ name: '', contact: '', email: '' });
       setShowNewClientModal(false);
     } else {
-      toast.error('Erro ao criar cliente');
+      toast.error('Não foi possível criar o cliente. Tente novamente.');
     }
     setSavingClient(false);
   };
 
   const handleSaveSession = async () => {
     if (!form.client_id && (!form.title || !form.title.trim())) {
-      toast.error('Selecione um cliente ou dê um título ao evento!');
+      toast.error('Selecione um cliente ou dê um título ao evento');
       return;
     }
-    setSaving(true);
     const dateStr = form.date || getDateStr(selectedDay);
+    if (!dateStr) { toast.error('Informe a data da sessão'); return; }
+    if (!form.is_all_day && !form.time_start) { toast.error('Informe o horário de início'); return; }
+    setSaving(true);
     const clientName = form.client_id ? getClientName(form.client_id) : form.title;
 
     if (editSession) {
@@ -178,7 +180,7 @@ export default function Calendar({ clients, sessions, addSession, updateSession,
           fetchGoogleEvents();
         }
       } else {
-        toast.error('Erro ao atualizar');
+        toast.error('Não foi possível atualizar a sessão. Tente novamente.');
       }
     } else {
       const result = await addSession({
@@ -210,7 +212,7 @@ export default function Calendar({ clients, sessions, addSession, updateSession,
           }
         }
       } else {
-        toast.error('Erro ao agendar');
+        toast.error('Não foi possível agendar a sessão. Tente novamente.');
       }
     }
 

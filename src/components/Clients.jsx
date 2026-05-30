@@ -46,7 +46,7 @@ export default function Clients({ clients, packages, references, addClient, upda
   };
 
   const saveClient = async () => {
-    if (!clientForm.name.trim()) return;
+    if (!clientForm.name.trim()) { toast.error('Informe o nome do cliente'); return; }
     setSaving(true);
     if (editClientData) {
       const result = await updateClient(editClientData.id, clientForm);
@@ -84,7 +84,8 @@ export default function Clients({ clients, packages, references, addClient, upda
   };
 
   const savePkg = async () => {
-    if (!pkgForm.name.trim()) return;
+    if (!pkgForm.name.trim()) { toast.error('Informe o nome do pacote'); return; }
+    if (!pkgForm.client_id) { toast.error('Selecione um cliente para o pacote'); return; }
     setSaving(true);
     const data = {
       ...pkgForm,
@@ -116,7 +117,8 @@ export default function Clients({ clients, packages, references, addClient, upda
   };
 
   const saveRef = async () => {
-    if (!refForm.title.trim() || !refForm.url.trim()) return;
+    if (!refForm.title.trim()) { toast.error('Informe o título da referência'); return; }
+    if (!refForm.url.trim()) { toast.error('Informe a URL da referência'); return; }
     setSaving(true);
     if (editRefData) {
       const result = await updateReference(editRefData.id, refForm);

@@ -24,7 +24,8 @@ export default function Packages({ clients, packages, payments, videos, updatePa
   const [createForm, setCreateForm] = useState(emptyPkg);
 
   const saveNewPkg = async () => {
-    if (!createForm.name.trim() || !createForm.client_id) return;
+    if (!createForm.client_id) { toast.error('Selecione um cliente'); return; }
+    if (!createForm.name.trim()) { toast.error('Informe o nome do pacote'); return; }
     setSaving(true);
     const data = { ...createForm, total_videos: Number(createForm.total_videos), edited: Number(createForm.edited), delivered: Number(createForm.delivered), posted: Number(createForm.posted), value: Number(createForm.value), paid: Number(createForm.paid), end_date: createForm.end_date || null };
     const result = await addPackage(data);
@@ -99,7 +100,7 @@ export default function Packages({ clients, packages, payments, videos, updatePa
       status: editForm.status,
       paid: Number(editForm.paid),
     });
-    result ? toast.success('Pacote atualizado') : toast.error('Erro ao atualizar');
+    result ? toast.success('Pacote atualizado') : toast.error('Não foi possível atualizar o pacote. Tente novamente.');
     setSaving(false);
     setEditingPkg(null);
   };

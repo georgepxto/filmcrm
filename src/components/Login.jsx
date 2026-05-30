@@ -1,7 +1,14 @@
 import { useState } from 'react';
-import { Eye, EyeOff, Loader } from 'lucide-react';
+import { Eye, EyeOff, Loader, Calendar, Users, LayoutGrid, DollarSign, Lock, Mail, KeyRound, User } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import BrandLogo from './BrandLogo';
+
+const FEATURES = [
+  { icon: <Calendar size={16} />, label: 'Calendário inteligente de gravações' },
+  { icon: <Users size={16} />, label: 'Controle completo de clientes e pacotes' },
+  { icon: <LayoutGrid size={16} />, label: 'Pipeline de pós-produção Kanban' },
+  { icon: <DollarSign size={16} />, label: 'Gestão financeira com histórico' },
+];
 
 export default function Login() {
   const { signIn, signUp, resetPassword } = useAuth();
@@ -59,30 +66,37 @@ export default function Login() {
     return msg;
   };
 
+  const switchMode = (next) => { setMode(next); setError(''); setSuccess(''); };
+
   return (
     <div className="login-page">
-      <div className="login-container">
-        {/* Left Panel — Branding */}
-        <div className="login-branding">
-          <div className="login-branding-content">
-            <div className="login-logo">
-              <h1><BrandLogo /></h1>
-            </div>
-            <p className="login-tagline">Gestão Cinematográfica</p>
-            <div className="login-features">
-              <div className="login-feature">— Calendário inteligente de gravações</div>
-              <div className="login-feature">— Controle completo de clientes e pacotes</div>
-              <div className="login-feature">— Pipeline de pós-produção Kanban</div>
-              <div className="login-feature">— Gestão financeira com histórico</div>
-            </div>
-            <div className="login-branding-footer">
-              <p>Seus dados na nuvem, acessíveis de qualquer dispositivo.</p>
-            </div>
+      <div className="login-card">
+
+        {/* ── Left column — Presentation ── */}
+        <div className="login-left">
+          <div className="login-brand">
+            <img src="/assets/takeone-icon.png" alt="TakeOne" className="login-brand-icon" />
+            <div className="login-brand-text"><BrandLogo /></div>
+          </div>
+          <p className="login-tagline">Gestão Cinematográfica</p>
+
+          <ul className="login-features">
+            {FEATURES.map(f => (
+              <li key={f.label} className="login-feature">
+                <span className="login-feature-icon">{f.icon}</span>
+                <span className="login-feature-label">{f.label}</span>
+              </li>
+            ))}
+          </ul>
+
+          <div className="login-left-footer">
+            <Lock size={11} aria-hidden="true" />
+            <span>Seus dados na nuvem, acessíveis de qualquer dispositivo.</span>
           </div>
         </div>
 
-        {/* Right Panel — Form */}
-        <div className="login-form-panel">
+        {/* ── Right column — Form ── */}
+        <div className="login-right">
           <form className="login-form" onSubmit={handleSubmit}>
             <h2>
               {mode === 'login' && <>Bem-vindo <em>de volta</em></>}
@@ -95,47 +109,49 @@ export default function Login() {
               {mode === 'reset' && 'Enviaremos um link para seu email'}
             </p>
 
-            {error && (
-              <div className="login-alert login-alert-error">{error}</div>
-            )}
-
-            {success && (
-              <div className="login-alert login-alert-success">{success}</div>
-            )}
+            {error && <div className="login-alert login-alert-error">{error}</div>}
+            {success && <div className="login-alert login-alert-success">{success}</div>}
 
             {mode === 'register' && (
               <div className="login-field">
                 <label htmlFor="login-name">Nome completo</label>
-                <input
-                  id="login-name"
-                  type="text"
-                  className="form-control"
-                  placeholder="Seu nome"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  autoComplete="name"
-                />
+                <div className="login-input-wrap">
+                  <User size={16} className="login-input-icon" aria-hidden="true" />
+                  <input
+                    id="login-name"
+                    type="text"
+                    className="form-control"
+                    placeholder="Seu nome"
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    autoComplete="name"
+                  />
+                </div>
               </div>
             )}
 
             <div className="login-field">
               <label htmlFor="login-email">Email</label>
-              <input
-                id="login-email"
-                type="email"
-                className="form-control"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-                autoComplete="email"
-              />
+              <div className="login-input-wrap">
+                <Mail size={16} className="login-input-icon" aria-hidden="true" />
+                <input
+                  id="login-email"
+                  type="email"
+                  className="form-control"
+                  placeholder="seu@email.com"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  required
+                  autoComplete="email"
+                />
+              </div>
             </div>
 
             {mode !== 'reset' && (
               <div className="login-field">
                 <label htmlFor="login-password">Senha</label>
-                <div className="login-password-wrap">
+                <div className="login-input-wrap login-password-wrap">
+                  <KeyRound size={16} className="login-input-icon" aria-hidden="true" />
                   <input
                     id="login-password"
                     type={showPassword ? 'text' : 'password'}
@@ -152,6 +168,7 @@ export default function Login() {
                     className="login-password-toggle"
                     onClick={() => setShowPassword(!showPassword)}
                     tabIndex={-1}
+                    aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
                   >
                     {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
@@ -160,20 +177,12 @@ export default function Login() {
             )}
 
             {mode === 'login' && (
-              <button
-                type="button"
-                className="login-link login-forgot"
-                onClick={() => { setMode('reset'); setError(''); setSuccess(''); }}
-              >
+              <button type="button" className="login-forgot" onClick={() => switchMode('reset')}>
                 Esqueci minha senha
               </button>
             )}
 
-            <button
-              type="submit"
-              className="login-submit"
-              disabled={loading}
-            >
+            <button type="submit" className="login-submit" disabled={loading}>
               {loading ? (
                 <Loader size={16} className="login-spinner" />
               ) : (
@@ -189,14 +198,14 @@ export default function Login() {
               {mode === 'login' ? (
                 <p>
                   Não tem conta?{' '}
-                  <button type="button" className="login-link" onClick={() => { setMode('register'); setError(''); setSuccess(''); }}>
+                  <button type="button" className="login-link" onClick={() => switchMode('register')}>
                     Criar conta
                   </button>
                 </p>
               ) : (
                 <p>
                   Já tem conta?{' '}
-                  <button type="button" className="login-link" onClick={() => { setMode('login'); setError(''); setSuccess(''); }}>
+                  <button type="button" className="login-link" onClick={() => switchMode('login')}>
                     Fazer login
                   </button>
                 </p>
@@ -204,6 +213,7 @@ export default function Login() {
             </div>
           </form>
         </div>
+
       </div>
     </div>
   );

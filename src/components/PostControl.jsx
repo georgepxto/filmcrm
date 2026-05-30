@@ -187,7 +187,7 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
   return (
     <div className="fade-in">
       <div className="page-header" style={{ marginBottom: '0.5rem' }}>
-        <h2><Film size={24} /> Pipeline de Produção</h2>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, letterSpacing: '-0.02em' }}>Pipeline de Produção</h2>
         <button className="btn btn-primary" onClick={() => openModal()}>
           <Plus size={16} /> Novo Vídeo
         </button>

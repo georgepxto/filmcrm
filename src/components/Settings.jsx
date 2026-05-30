@@ -339,9 +339,6 @@ export default function Settings() {
           <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', color: 'var(--text-primary)' }}>
             <Sun size={20} color="var(--amber)" /> Aparência
           </h3>
-          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
-            Escolha o tema da interface. As cores quentes âmbar são preservadas em ambos os modos.
-          </p>
           <div style={{ display: 'flex', gap: '1rem' }}>
             <button
               type="button"

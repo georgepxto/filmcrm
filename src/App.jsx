@@ -1,9 +1,6 @@
 import { useState } from 'react';
 import { ThemeProvider } from './contexts/ThemeContext';
-import {
-  LayoutDashboard, CalendarDays, Users, Film, DollarSign, Package,
-  Menu, X, Clapperboard, LogOut, Loader, Settings as SettingsIcon
-} from 'lucide-react';
+import { Menu, Clapperboard, LogOut, Loader } from 'lucide-react';
 import {
   BrowserRouter, Routes, Route, NavLink, Navigate, useNavigate, useLocation
 } from 'react-router-dom';
@@ -19,13 +16,33 @@ import Payments from './components/Payments';
 import Packages from './components/Packages';
 import Settings from './components/Settings';
 
-const NAV_ITEMS = [
-  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/calendar', label: 'Calendário', icon: CalendarDays },
-  { path: '/clients', label: 'Clientes & Pacotes', icon: Users },
-  { path: '/packages', label: 'Pacotes', icon: Package },
-  { path: '/posts', label: 'Postagens', icon: Film },
-  { path: '/payments', label: 'Pagamentos', icon: DollarSign },
+const NAV_GROUPS = [
+  {
+    label: 'Principal',
+    items: [
+      { path: '/dashboard', label: 'Dashboard' },
+      { path: '/calendar', label: 'Calendário' },
+    ],
+  },
+  {
+    label: 'Clientes',
+    items: [
+      { path: '/clients', label: 'Clientes & Pacotes' },
+      { path: '/packages', label: 'Pacotes' },
+    ],
+  },
+  {
+    label: 'Produção',
+    items: [
+      { path: '/posts', label: 'Postagens' },
+    ],
+  },
+  {
+    label: 'Financeiro',
+    items: [
+      { path: '/payments', label: 'Pagamentos' },
+    ],
+  },
 ];
 
 function AppLayout() {
@@ -97,33 +114,36 @@ function AppLayout() {
         {/* Sidebar */}
         <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
           <div className="sidebar-logo">
-            <h1><Clapperboard size={22} style={{ display: 'inline', marginRight: 6, color: '#d4870a' }} />Film<span>CRM</span></h1>
+            <h1><Clapperboard size={18} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle', color: 'var(--text-muted)', opacity: 0.6 }} />Film<span>CRM</span></h1>
             <p>Gestão Cinematográfica</p>
           </div>
           <nav className="sidebar-nav">
-            {NAV_ITEMS.map(item => (
+            {NAV_GROUPS.map(group => (
+              <div key={group.label} className="nav-group">
+                <span className="nav-group-label">{group.label}</span>
+                {group.items.map(item => (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    {item.label}
+                  </NavLink>
+                ))}
+              </div>
+            ))}
+            <div className="nav-group nav-group-sistema">
+              <span className="nav-group-label">Sistema</span>
               <NavLink
-                key={item.path}
-                to={item.path}
-                className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+                to="/settings"
+                className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
                 onClick={() => setSidebarOpen(false)}
               >
-                <item.icon size={18} />
-                {item.label}
+                Configurações
               </NavLink>
-            ))}
+            </div>
           </nav>
-
-          <div style={{ padding: '0 1.25rem', marginBottom: '0.5rem' }}>
-            <NavLink
-              to="/settings"
-              className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-              onClick={() => setSidebarOpen(false)}
-            >
-              <SettingsIcon size={18} />
-              Configurações
-            </NavLink>
-          </div>
 
           {/* User section */}
           <div className="sidebar-user">

@@ -1,11 +1,50 @@
 import { useState } from 'react';
 import {
-  Package, Search, Filter, Play, Pause, CheckCircle, AlertTriangle,
-  Edit, ChevronDown, ChevronUp, DollarSign, Film, Calendar as CalIcon,
-  TrendingUp, Clock, Eye, X, Repeat, Video, Scissors, Smartphone, Plus, User,
+  Search, ChevronDown, ChevronUp, Edit, X,
+  DollarSign, Package, Film, AlertTriangle,
 } from 'lucide-react';
 import { useToast } from './Toast';
 import { useAuth } from '../contexts/AuthContext';
+
+/* ── Local micro-components ── */
+const OutlineBtn = ({ onClick, children, style = {} }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    style={{
+      background: 'transparent', border: '1px solid var(--amber)', color: 'var(--amber)',
+      borderRadius: 6, padding: '0.32rem 0.8rem', fontSize: '0.78rem', fontWeight: 600,
+      cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+      transition: 'background 0.18s', fontFamily: 'var(--font-body)', ...style,
+    }}
+    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(212,135,10,0.08)'; }}
+    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+  >
+    {children}
+  </button>
+);
+
+const SecLabel = ({ children }) => (
+  <span style={{
+    fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.18em',
+    textTransform: 'uppercase', color: 'var(--text-muted)', opacity: 0.8,
+  }}>
+    {children}
+  </span>
+);
+
+const fieldStyle = {
+  height: '30px',
+  background: 'var(--bg-elevated)',
+  border: '0.5px solid var(--border)',
+  borderRadius: 6,
+  fontSize: '0.75rem',
+  color: 'var(--text-secondary)',
+  fontFamily: 'var(--font-body)',
+  padding: '0 0.65rem',
+  outline: 'none',
+  cursor: 'pointer',
+};
 
 export default function Packages({ clients, packages, payments, videos, updatePackage, addPackage }) {
   const { user } = useAuth();
@@ -36,21 +75,6 @@ export default function Packages({ clients, packages, payments, videos, updatePa
 
   const getClientName = (id) => clients.find(c => c.id === id)?.name || '—';
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'Ativo': return <Play size={12} />;
-      case 'Pausado': return <Pause size={12} />;
-      case 'Concluído': return <CheckCircle size={12} />;
-      default: return null;
-    }
-  };
-
-  const getStatusBadge = (status) => {
-    const map = { 'Ativo': 'active', 'Pausado': 'paused', 'Concluído': 'concluded' };
-    return map[status] || 'active';
-  };
-
-  // Filters
   let filtered = packages.filter(p => {
     const clientName = getClientName(p.client_id).toLowerCase();
     const matchSearch = !searchQuery || clientName.includes(searchQuery.toLowerCase()) || p.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -59,7 +83,6 @@ export default function Packages({ clients, packages, payments, videos, updatePa
     return matchSearch && matchStatus && matchClient;
   });
 
-  // Sort
   filtered = [...filtered].sort((a, b) => {
     if (sortBy === 'recent') return (b.created_at || '').localeCompare(a.created_at || '');
     if (sortBy === 'value') return (b.value || 0) - (a.value || 0);
@@ -72,35 +95,24 @@ export default function Packages({ clients, packages, payments, videos, updatePa
     return 0;
   });
 
-  // Stats
   const activePkgs = packages.filter(p => p.status === 'Ativo');
   const totalValue = packages.reduce((s, p) => s + (p.value || 0), 0);
   const totalPaid = packages.reduce((s, p) => s + (p.paid || 0), 0);
   const totalOwed = packages.reduce((s, p) => s + Math.max(0, (p.value || 0) - (p.paid || 0)), 0);
   const lowPkgs = activePkgs.filter(p => p.total_videos > 0 && (p.total_videos - p.delivered) <= 2);
 
-  // Quick edit
   const startEdit = (pkg) => {
     setEditingPkg(pkg.id);
-    setEditForm({
-      edited: pkg.edited || 0,
-      delivered: pkg.delivered || 0,
-      posted: pkg.posted || 0,
-      status: pkg.status,
-      paid: pkg.paid || 0,
-    });
+    setEditForm({ edited: pkg.edited || 0, delivered: pkg.delivered || 0, posted: pkg.posted || 0, status: pkg.status, paid: pkg.paid || 0 });
   };
 
   const saveEdit = async (pkgId) => {
     setSaving(true);
     const result = await updatePackage(pkgId, {
-      edited: Number(editForm.edited),
-      delivered: Number(editForm.delivered),
-      posted: Number(editForm.posted),
-      status: editForm.status,
-      paid: Number(editForm.paid),
+      edited: Number(editForm.edited), delivered: Number(editForm.delivered),
+      posted: Number(editForm.posted), status: editForm.status, paid: Number(editForm.paid),
     });
-    result ? toast.success('Pacote atualizado') : toast.error('Não foi possível atualizar o pacote. Tente novamente.');
+    result ? toast.success('Pacote atualizado') : toast.error('Não foi possível atualizar. Tente novamente.');
     setSaving(false);
     setEditingPkg(null);
   };
@@ -108,76 +120,84 @@ export default function Packages({ clients, packages, payments, videos, updatePa
   const getPkgPayments = (pkgId) => payments.filter(p => p.package_id === pkgId);
   const getPkgVideos = (pkgId) => videos.filter(v => v.package_id === pkgId);
 
+  const getStatusBadge = (status) => {
+    const map = { 'Ativo': 'active', 'Pausado': 'paused', 'Concluído': 'concluded' };
+    return map[status] || 'active';
+  };
+
   return (
     <div className="fade-in">
-      <div className="flex-between" style={{ marginBottom: '1.5rem' }}>
+
+      {/* ── Header ── */}
+      <div style={{ marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h2 style={{ fontFamily: 'var(--font-display)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Package size={24} /> Pacotes</h2>
-          <p className="text-muted" style={{ fontSize: '0.82rem', marginTop: '0.2rem' }}>Gerencie e acompanhe todos os pacotes dos seus clientes</p>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', fontWeight: 400, letterSpacing: '-0.02em', marginBottom: '0.3rem', color: 'var(--text-primary)' }}>
+            Pacotes
+          </h2>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            Acompanhe o que está rolando com cada cliente.
+          </p>
         </div>
-        <button className="btn btn-primary" onClick={() => { setCreateForm(emptyPkg); setShowCreateModal(true); }}>
-          <Plus size={16} /> Novo Pacote
-        </button>
+        <OutlineBtn onClick={() => { setCreateForm(emptyPkg); setShowCreateModal(true); }}>
+          + Novo Pacote
+        </OutlineBtn>
       </div>
 
-      {/* Summary Cards */}
-      <div className="summary-cards">
-        <div className="summary-card">
-          <div className="icon-wrap"><Package size={20} /></div>
-          <div className="info">
-            <h4>Total de Pacotes</h4>
-            <div className="value">{packages.length}</div>
-          </div>
+      {/* ── Featured metric — Valor Total ── */}
+      <div style={{ padding: '1.75rem 2rem', border: '0.5px solid var(--border)', borderRadius: 8, background: 'var(--bg-card)', marginBottom: '0.5rem' }}>
+        <p style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.6rem', opacity: 0.8 }}>
+          Valor total em carteira
+        </p>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2.4rem, 5vw, 3.2rem)', fontWeight: 400, color: 'var(--amber)', letterSpacing: '-0.02em', lineHeight: 1, marginBottom: '0.5rem' }}>
+          {cSym} {totalValue.toLocaleString('pt-BR')}
         </div>
-        <div className="summary-card">
-          <div className="icon-wrap" style={{ background: 'rgba(52,211,153,0.15)', color: 'var(--success)' }}><Play size={20} /></div>
-          <div className="info">
-            <h4>Ativos</h4>
-            <div className="value" style={{ color: 'var(--success)' }}>{activePkgs.length}</div>
-          </div>
-        </div>
-        <div className="summary-card">
-          <div className="icon-wrap" style={{ background: 'rgba(96,165,250,0.15)', color: 'var(--info)' }}><DollarSign size={20} /></div>
-          <div className="info">
-            <h4>Valor Total</h4>
-            <div className="value" style={{ color: 'var(--info)', fontSize: '1.1rem' }}>{cSym} {totalValue.toLocaleString('pt-BR')}</div>
-          </div>
-        </div>
-        <div className="summary-card">
-          <div className="icon-wrap" style={{ background: lowPkgs.length > 0 ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.15)', color: lowPkgs.length > 0 ? 'var(--danger)' : 'var(--warning)' }}>
-            <AlertTriangle size={20} />
-          </div>
-          <div className="info">
-            <h4>Acabando</h4>
-            <div className="value" style={{ color: lowPkgs.length > 0 ? 'var(--danger)' : 'var(--warning)' }}>{lowPkgs.length}</div>
-          </div>
-        </div>
+        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+          {cSym} {totalPaid.toLocaleString('pt-BR')} recebido
+          {totalOwed > 0 && <> · <span style={{ color: 'rgba(239,68,68,0.7)' }}>{cSym} {totalOwed.toLocaleString('pt-BR')} a receber</span></>}
+        </p>
       </div>
 
-      {/* Filters Bar */}
-      <div className="card pkg-filters">
-        <div className="pkg-search">
-          <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+      {/* ── Secondary metrics ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', marginBottom: '2.5rem' }}>
+        {[
+          { label: 'Total de pacotes', value: packages.length, color: 'var(--text-secondary)' },
+          { label: 'Ativos agora', value: activePkgs.length, color: 'var(--text-secondary)' },
+          { label: 'Críticos', value: lowPkgs.length, color: lowPkgs.length > 0 ? 'var(--warning)' : 'var(--text-muted)' },
+        ].map(m => (
+          <div key={m.label} style={{ padding: '1rem 1.25rem', border: '0.5px solid var(--border)', borderRadius: 8, background: 'var(--bg-card)' }}>
+            <span style={{ display: 'block', fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.5rem', opacity: 0.8 }}>
+              {m.label}
+            </span>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.9rem', fontWeight: 400, color: m.color, lineHeight: 1, letterSpacing: '-0.01em' }}>
+              {m.value}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Filter bar ── */}
+      <div className="pkg-filters" style={{ padding: 0, marginBottom: '1.5rem', gap: '0.5rem' }}>
+        <div className="pkg-search" style={{ position: 'relative' }}>
+          <Search size={12} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', opacity: 0.5, pointerEvents: 'none' }} />
           <input
             type="text"
-            className="form-control"
             placeholder="Buscar por cliente ou pacote..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            style={{ paddingLeft: '2rem', height: '36px' }}
+            style={{ ...fieldStyle, paddingLeft: '1.75rem', width: '100%', cursor: 'text' }}
           />
         </div>
-        <select className="form-control" value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ height: '36px' }}>
+        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={fieldStyle}>
           <option value="">Todos os status</option>
           <option value="Ativo">Ativo</option>
           <option value="Pausado">Pausado</option>
           <option value="Concluído">Concluído</option>
         </select>
-        <select className="form-control" value={filterClient} onChange={e => setFilterClient(e.target.value)} style={{ height: '36px' }}>
+        <select value={filterClient} onChange={e => setFilterClient(e.target.value)} style={fieldStyle}>
           <option value="">Todos os clientes</option>
           {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
-        <select className="form-control" value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ height: '36px' }}>
+        <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={fieldStyle}>
           <option value="recent">Mais recente</option>
           <option value="value">Maior valor</option>
           <option value="progress">Maior progresso</option>
@@ -185,14 +205,15 @@ export default function Packages({ clients, packages, payments, videos, updatePa
         </select>
       </div>
 
-      {/* Package List */}
+      {/* ── Package list ── */}
       {filtered.length === 0 ? (
-        <div className="card" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '3rem' }}>
-          <Package size={40} style={{ opacity: 0.3, marginBottom: '0.75rem' }} />
-          <p>Nenhum pacote encontrado</p>
-        </div>
+        <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', lineHeight: 1.9, padding: '3rem 0', textAlign: 'center' }}>
+          {packages.length === 0
+            ? 'Nenhum pacote por aqui ainda — quando criar um, ele aparece nesta lista.'
+            : 'Nenhum pacote encontrado com esses filtros.'}
+        </p>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           {filtered.map(pkg => {
             const remaining = pkg.total_videos - pkg.delivered;
             const progress = pkg.total_videos > 0 ? (pkg.delivered / pkg.total_videos) * 100 : 0;
@@ -206,126 +227,113 @@ export default function Packages({ clients, packages, payments, videos, updatePa
             return (
               <div
                 key={pkg.id}
-                className="card"
                 style={{
-                  padding: 0,
+                  border: isLow ? '0.5px solid rgba(239,68,68,0.3)' : '0.5px solid var(--border)',
+                  borderRadius: 8,
+                  background: 'var(--bg-card)',
                   overflow: 'hidden',
-                  border: isLow ? '1px solid rgba(239,68,68,0.3)' : isExpanded ? '1px solid var(--amber)' : undefined,
-                  transition: 'all 0.2s ease',
+                  transition: 'border-color 0.18s',
                 }}
               >
-                {/* Main Row */}
+                {/* ── Main row ── */}
                 <div
                   className="pkg-card-row"
+                  style={{ padding: '1.1rem 1.5rem' }}
                   onClick={() => setExpandedPkg(isExpanded ? null : pkg.id)}
                 >
-                  {/* Left: Client + Package Name */}
+                  {/* Left: name + meta */}
                   <div className="pkg-card-left">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                      <span style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>{pkg.name}</span>
-                      <span className={`badge badge-${getStatusBadge(pkg.status)}`} style={{ fontSize: '0.65rem' }}>
-                        {getStatusIcon(pkg.status)} {pkg.status}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', flexWrap: 'wrap', marginBottom: '0.25rem' }}>
+                      <span style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: '1.05rem', color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+                        {pkg.name}
+                      </span>
+                      <span className={`badge badge-${getStatusBadge(pkg.status)}`} style={{ borderRadius: 3, fontSize: '0.58rem', letterSpacing: '0.08em' }}>
+                        {pkg.status}
                       </span>
                       {isLow && (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.7rem', color: 'var(--danger)', fontWeight: 600 }}>
-                          <AlertTriangle size={12} /> {remaining === 0 ? 'Finalizado' : `${remaining} restante${remaining !== 1 ? 's' : ''}`}
+                        <span style={{ fontSize: '0.65rem', color: 'var(--danger)', opacity: 0.8 }}>
+                          {remaining === 0 ? 'finalizado' : `${remaining} restante${remaining !== 1 ? 's' : ''}`}
                         </span>
                       )}
                     </div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.15rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                      <span style={{ color: 'var(--amber)' }}>{getClientName(pkg.client_id)}</span>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
-                        <Repeat size={11} /> {pkg.billing_cycle || 'Mensal'}
-                      </span>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
-                        <Clock size={11} /> {pkg.end_date ? `Até ${new Date(pkg.end_date + 'T12:00').toLocaleDateString('pt-BR')}` : 'Contínuo'}
-                      </span>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', gap: '0.35rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>{getClientName(pkg.client_id)}</span>
+                      <span style={{ opacity: 0.35 }}>·</span>
+                      <span>{pkg.billing_cycle || 'Mensal'}</span>
+                      <span style={{ opacity: 0.35 }}>·</span>
+                      <span>{pkg.end_date ? `Até ${new Date(pkg.end_date + 'T12:00').toLocaleDateString('pt-BR')}` : 'Contínuo'}</span>
                     </div>
                   </div>
 
-                  {/* Middle: Progress */}
+                  {/* Progress */}
                   <div className="pkg-card-progress">
-                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
-                      <span>{pkg.edited || 0} editados, {pkg.delivered} entregues / {pkg.total_videos}</span>
-                      <span style={{ color: isLow ? 'var(--danger)' : 'var(--amber)' }}>{progress.toFixed(0)}%</span>
+                    <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem', opacity: 0.8 }}>
+                      <span>{pkg.delivered}/{pkg.total_videos} entregues</span>
+                      <span>{progress.toFixed(0)}%</span>
                     </div>
-                    <div className="progress-bar" style={{ height: '8px' }}>
-                      <div className={`progress-fill${isLow ? ' danger' : ''}`} style={{ width: `${progress}%`, borderRadius: '4px' }} />
+                    <div style={{ height: 2, background: 'var(--border)', borderRadius: 99, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${progress}%`, background: isLow ? 'rgba(239,68,68,0.6)' : 'rgba(212,135,10,0.45)', borderRadius: 99, transition: 'width 0.5s ease' }} />
                     </div>
                   </div>
 
-                  {/* Right: Value + Expand */}
+                  {/* Value + chevron */}
                   <div className="pkg-card-value">
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.05rem', fontWeight: 400, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
                         {cSym} {(pkg.value || 0).toLocaleString('pt-BR')}
                       </div>
-                      <div style={{ fontSize: '0.7rem', color: owed > 0 ? 'var(--danger)' : 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.2rem', justifyContent: 'flex-end' }}>
-                        {owed > 0 ? `Deve ${cSym} ${owed.toLocaleString('pt-BR')}` : <><CheckCircle size={11} /> Quitado</>}
+                      <div style={{ fontSize: '0.63rem', color: owed > 0 ? 'rgba(239,68,68,0.65)' : 'var(--text-muted)', marginTop: '0.1rem' }}>
+                        {owed > 0 ? `deve ${cSym} ${owed.toLocaleString('pt-BR')}` : 'quitado'}
                       </div>
                     </div>
-                    {isExpanded ? <ChevronUp size={16} style={{ color: 'var(--text-muted)' }} /> : <ChevronDown size={16} style={{ color: 'var(--text-muted)' }} />}
+                    <span style={{ color: 'var(--text-muted)', opacity: 0.45, flexShrink: 0 }}>
+                      {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    </span>
                   </div>
                 </div>
 
-                {/* Expanded Detail */}
+                {/* ── Expanded detail ── */}
                 {isExpanded && (
-                  <div style={{ borderTop: '1px solid var(--border)', padding: '1.25rem', animation: 'fadeIn 0.25s ease' }}>
-                    {/* Stats Grid */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem', marginBottom: '1.25rem' }}>
-                      <div className="card" style={{ padding: '0.75rem', textAlign: 'center', background: 'var(--bg-modifier)' }}>
-                        <div className="text-muted" style={{ fontSize: '0.68rem', marginBottom: '0.15rem' }}>Total</div>
-                        <div style={{ fontWeight: 700, fontSize: '1.2rem' }}>{pkg.total_videos}</div>
-                      </div>
-                      <div className="card" style={{ padding: '0.75rem', textAlign: 'center', background: 'var(--bg-modifier)' }}>
-                        <div className="text-muted" style={{ fontSize: '0.68rem', marginBottom: '0.15rem' }}>Editados</div>
-                        <div style={{ fontWeight: 700, fontSize: '1.2rem', color: 'var(--info)' }}>{pkg.edited || 0}</div>
-                      </div>
-                      <div className="card" style={{ padding: '0.75rem', textAlign: 'center', background: 'var(--bg-modifier)' }}>
-                        <div className="text-muted" style={{ fontSize: '0.68rem', marginBottom: '0.15rem' }}>Entregues</div>
-                        <div style={{ fontWeight: 700, fontSize: '1.2rem', color: 'var(--success)' }}>{pkg.delivered || 0}</div>
-                      </div>
-                      <div className="card" style={{ padding: '0.75rem', textAlign: 'center', background: 'var(--bg-modifier)' }}>
-                        <div className="text-muted" style={{ fontSize: '0.68rem', marginBottom: '0.15rem' }}>Postados</div>
-                        <div style={{ fontWeight: 700, fontSize: '1.2rem', color: 'var(--info)' }}>{pkg.posted}</div>
-                      </div>
-                      <div className="card" style={{ padding: '0.75rem', textAlign: 'center', background: 'var(--bg-modifier)' }}>
-                        <div className="text-muted" style={{ fontSize: '0.68rem', marginBottom: '0.15rem' }}>Restantes</div>
-                        <div style={{ fontWeight: 700, fontSize: '1.2rem', color: isLow ? 'var(--danger)' : 'var(--amber)' }}>{remaining}</div>
-                      </div>
-                      <div className="card" style={{ padding: '0.75rem', textAlign: 'center', background: 'var(--bg-modifier)' }}>
-                        <div className="text-muted" style={{ fontSize: '0.68rem', marginBottom: '0.15rem' }}>Pago</div>
-                        <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--success)' }}>{cSym} {(pkg.paid || 0).toLocaleString('pt-BR')}</div>
-                      </div>
-                      <div className="card" style={{ padding: '0.75rem', textAlign: 'center', background: 'var(--bg-modifier)' }}>
-                        <div className="text-muted" style={{ fontSize: '0.68rem', marginBottom: '0.15rem' }}>Devendo</div>
-                        <div style={{ fontWeight: 700, fontSize: '1rem', color: owed > 0 ? 'var(--danger)' : 'var(--success)' }}>{cSym} {owed.toLocaleString('pt-BR')}</div>
-                      </div>
+                  <div style={{ borderTop: '0.5px solid var(--border)', padding: '1.25rem 1.5rem', animation: 'fadeIn 0.2s ease' }}>
+
+                    {/* Stats mini grid */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                      {[
+                        { label: 'Total', value: pkg.total_videos, color: 'var(--text-secondary)' },
+                        { label: 'Editados', value: pkg.edited || 0, color: 'var(--info)' },
+                        { label: 'Entregues', value: pkg.delivered, color: 'var(--success)' },
+                        { label: 'Postados', value: pkg.posted, color: 'var(--info)' },
+                        { label: 'Restantes', value: remaining, color: isLow ? 'var(--danger)' : 'var(--text-secondary)' },
+                        { label: 'Pago', value: `${cSym} ${(pkg.paid || 0).toLocaleString('pt-BR')}`, color: 'var(--success)' },
+                        { label: 'Devendo', value: `${cSym} ${owed.toLocaleString('pt-BR')}`, color: owed > 0 ? 'var(--danger)' : 'var(--text-muted)' },
+                      ].map(({ label, value, color }) => (
+                        <div key={label} style={{ padding: '0.6rem 0.65rem', border: '0.5px solid var(--border)', borderRadius: 6, textAlign: 'center' }}>
+                          <div style={{ fontSize: '0.55rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-muted)', fontWeight: 600, opacity: 0.7, marginBottom: '0.2rem' }}>
+                            {label}
+                          </div>
+                          <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.15rem', fontWeight: 300, color, lineHeight: 1 }}>
+                            {value}
+                          </div>
+                        </div>
+                      ))}
                     </div>
 
-                    {/* Quick Edit */}
+                    {/* Quick edit */}
                     {isEditing ? (
-                      <div className="card" style={{ padding: '1rem', marginBottom: '1rem', border: '1px solid var(--amber)', background: 'rgba(245,158,11,0.03)' }}>
-                        <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--amber)', fontWeight: 600, marginBottom: '0.75rem' }}>
-                          Edição Rápida
-                        </div>
+                      <div style={{ border: '0.5px solid var(--amber)', borderRadius: 8, padding: '1rem', marginBottom: '1rem', background: 'rgba(212,135,10,0.03)' }}>
+                        <SecLabel style={{ display: 'block', marginBottom: '0.75rem' }}>Edição Rápida</SecLabel>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.75rem' }}>
-                          <div className="form-group" style={{ marginBottom: 0 }}>
-                            <label>Editados</label>
-                            <input type="number" className="form-control" value={editForm.edited} onChange={e => setEditForm({ ...editForm, edited: e.target.value })} min={0} max={pkg.total_videos} />
-                          </div>
-                          <div className="form-group" style={{ marginBottom: 0 }}>
-                            <label>Entregues</label>
-                            <input type="number" className="form-control" value={editForm.delivered} onChange={e => setEditForm({ ...editForm, delivered: e.target.value })} min={0} max={pkg.total_videos} />
-                          </div>
-                          <div className="form-group" style={{ marginBottom: 0 }}>
-                            <label>Postados</label>
-                            <input type="number" className="form-control" value={editForm.posted} onChange={e => setEditForm({ ...editForm, posted: e.target.value })} min={0} max={pkg.total_videos} />
-                          </div>
-                          <div className="form-group" style={{ marginBottom: 0 }}>
-                            <label>Pago ({cSym})</label>
-                            <input type="number" className="form-control" value={editForm.paid} onChange={e => setEditForm({ ...editForm, paid: e.target.value })} min={0} />
-                          </div>
+                          {[
+                            { label: 'Editados', key: 'edited', max: pkg.total_videos },
+                            { label: 'Entregues', key: 'delivered', max: pkg.total_videos },
+                            { label: 'Postados', key: 'posted', max: pkg.total_videos },
+                            { label: `Pago (${cSym})`, key: 'paid', max: undefined },
+                          ].map(({ label, key, max }) => (
+                            <div className="form-group" key={key} style={{ marginBottom: 0 }}>
+                              <label>{label}</label>
+                              <input type="number" className="form-control" value={editForm[key]} onChange={e => setEditForm({ ...editForm, [key]: e.target.value })} min={0} max={max} />
+                            </div>
+                          ))}
                           <div className="form-group" style={{ marginBottom: 0 }}>
                             <label>Status</label>
                             <select className="form-control" value={editForm.status} onChange={e => setEditForm({ ...editForm, status: e.target.value })}>
@@ -343,33 +351,38 @@ export default function Packages({ clients, packages, payments, videos, updatePa
                         </div>
                       </div>
                     ) : (
-                      <div style={{ marginBottom: '1rem' }}>
-                        <button className="btn btn-secondary btn-sm" onClick={(e) => { e.stopPropagation(); startEdit(pkg); }} style={{ fontSize: '0.75rem', gap: '0.3rem' }}>
-                          <Edit size={13} /> Edição Rápida
+                      <div style={{ marginBottom: '1.25rem' }}>
+                        <button
+                          style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '0.73rem', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: '0.3rem', transition: 'color 0.18s', fontFamily: 'var(--font-body)' }}
+                          onMouseEnter={e => { e.currentTarget.style.color = 'var(--amber)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; }}
+                          onClick={e => { e.stopPropagation(); startEdit(pkg); }}
+                        >
+                          <Edit size={12} /> Edição Rápida
                         </button>
                       </div>
                     )}
 
-                    {/* Two-column layout: Payments + Videos */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
-                      {/* Payment History */}
+                    {/* Payments + Videos */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem' }}>
+                      {/* Payments */}
                       <div>
-                        <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                          <DollarSign size={12} /> Histórico de Pagamentos ({pkgPayments.length})
-                        </div>
+                        <SecLabel style={{ display: 'block', marginBottom: '0.65rem' }}>
+                          Histórico de Pagamentos ({pkgPayments.length})
+                        </SecLabel>
                         {pkgPayments.length === 0 ? (
-                          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>Nenhum pagamento registrado</p>
+                          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.8 }}>Nenhum pagamento registrado.</p>
                         ) : (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
                             {pkgPayments.sort((a, b) => b.date.localeCompare(a.date)).map(pay => (
-                              <div key={pay.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0.65rem', background: 'var(--bg-modifier)', borderRadius: '0.35rem', fontSize: '0.78rem' }}>
+                              <div key={pay.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.45rem 0.65rem', border: '0.5px solid var(--border)', borderRadius: 6, fontSize: '0.78rem' }}>
                                 <div>
-                                  <span style={{ color: 'var(--text-muted)', marginRight: '0.5rem' }}>
+                                  <span style={{ color: 'var(--text-muted)' }}>
                                     {new Date(pay.date + 'T12:00').toLocaleDateString('pt-BR')}
                                   </span>
-                                  {pay.note && <span style={{ color: 'var(--text-secondary)' }}>{pay.note}</span>}
+                                  {pay.note && <span style={{ color: 'var(--text-secondary)', marginLeft: '0.5rem' }}>{pay.note}</span>}
                                 </div>
-                                <span style={{ color: 'var(--success)', fontWeight: 600 }}>
+                                <span style={{ fontFamily: 'var(--font-display)', color: 'var(--success)', fontWeight: 300, fontSize: '0.95rem' }}>
                                   + {cSym} {pay.amount.toLocaleString('pt-BR')}
                                 </span>
                               </div>
@@ -378,23 +391,22 @@ export default function Packages({ clients, packages, payments, videos, updatePa
                         )}
                       </div>
 
-                      {/* Videos linked */}
+                      {/* Videos */}
                       <div>
-                        <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                          <Film size={12} /> Vídeos do Pacote ({pkgVideos.length})
-                        </div>
+                        <SecLabel style={{ display: 'block', marginBottom: '0.65rem' }}>
+                          Vídeos do Pacote ({pkgVideos.length})
+                        </SecLabel>
                         {pkgVideos.length === 0 ? (
-                          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>Nenhum vídeo vinculado</p>
+                          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.8 }}>Nenhum vídeo vinculado.</p>
                         ) : (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
                             {pkgVideos.map(v => (
-                              <div key={v.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0.65rem', background: 'var(--bg-modifier)', borderRadius: '0.35rem', fontSize: '0.78rem' }}>
+                              <div key={v.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.45rem 0.65rem', border: '0.5px solid var(--border)', borderRadius: 6, fontSize: '0.78rem' }}>
                                 <span style={{ color: 'var(--text-primary)' }}>{v.title}</span>
-                                <div style={{ display: 'flex', gap: '0.35rem' }}>
-                                  {v.recorded && <span title="Gravado" style={{ display: 'inline-flex', alignItems: 'center', padding: '0.2rem 0.35rem', borderRadius: '4px', background: 'rgba(52,211,153,0.12)', color: 'var(--success)' }}><Video size={11} /></span>}
-                                  {v.edited && <span title="Editado" style={{ display: 'inline-flex', alignItems: 'center', padding: '0.2rem 0.35rem', borderRadius: '4px', background: 'rgba(96,165,250,0.12)', color: 'var(--info)' }}><Scissors size={11} /></span>}
-                                  {v.delivered && <span title="Entregue" style={{ display: 'inline-flex', alignItems: 'center', padding: '0.2rem 0.35rem', borderRadius: '4px', background: 'rgba(245,158,11,0.12)', color: 'var(--amber)' }}><Package size={11} /></span>}
-                                  {v.posted && <span title="Postado" style={{ display: 'inline-flex', alignItems: 'center', padding: '0.2rem 0.35rem', borderRadius: '4px', background: 'rgba(168,85,247,0.12)', color: '#a855f7' }}><Smartphone size={11} /></span>}
+                                <div style={{ display: 'flex', gap: '0.4rem' }}>
+                                  {v.edited && <span style={{ fontSize: '0.6rem', color: 'var(--info)', opacity: 0.8 }}>editado</span>}
+                                  {v.delivered && <span style={{ fontSize: '0.6rem', color: 'var(--success)', opacity: 0.8 }}>entregue</span>}
+                                  {v.posted && <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>postado</span>}
                                 </div>
                               </div>
                             ))}
@@ -403,16 +415,12 @@ export default function Packages({ clients, packages, payments, videos, updatePa
                       </div>
                     </div>
 
-                    {/* Package info footer */}
-                    <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border)', fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                      {pkg.start_date && (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><CalIcon size={11} />Início: {new Date(pkg.start_date + 'T12:00').toLocaleDateString('pt-BR')}</span>
-                      )}
-                      {pkg.end_date && (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><Clock size={11} />Fim: {new Date(pkg.end_date + 'T12:00').toLocaleDateString('pt-BR')}</span>
-                      )}
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><DollarSign size={11} />Valor/ciclo: {cSym} {(pkg.value || 0).toLocaleString('pt-BR')}</span>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><Repeat size={11} />Ciclo: {pkg.billing_cycle || 'Mensal'}</span>
+                    {/* Footer info */}
+                    <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '0.5px solid var(--border)', fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+                      {pkg.start_date && <span>Início: {new Date(pkg.start_date + 'T12:00').toLocaleDateString('pt-BR')}</span>}
+                      {pkg.end_date && <span>Fim: {new Date(pkg.end_date + 'T12:00').toLocaleDateString('pt-BR')}</span>}
+                      <span>Ciclo: {pkg.billing_cycle || 'Mensal'}</span>
+                      <span>Valor/ciclo: {cSym} {(pkg.value || 0).toLocaleString('pt-BR')}</span>
                     </div>
                   </div>
                 )}
@@ -422,7 +430,7 @@ export default function Packages({ clients, packages, payments, videos, updatePa
         </div>
       )}
 
-      {/* Create Package Modal */}
+      {/* ── Create Package Modal ── */}
       {showCreateModal && (() => {
         const totalVids = Number(createForm.total_videos) || 0;
         const pkgValue = Number(createForm.value) || 0;
@@ -432,7 +440,7 @@ export default function Packages({ clients, packages, payments, videos, updatePa
           <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setShowCreateModal(false); }}>
             <div className="modal">
               <div className="modal-header">
-                <h3><Package size={18} /> Novo Pacote</h3>
+                <h3><Package size={16} /> Novo Pacote</h3>
                 <button className="modal-close" onClick={() => setShowCreateModal(false)}><X size={18} /></button>
               </div>
               <div className="modal-body">
@@ -481,18 +489,20 @@ export default function Packages({ clients, packages, payments, videos, updatePa
                   </div>
                 </div>
                 <div className="form-group">
-                  <label>Término do Contrato <span style={{ fontWeight: 400, opacity: 0.5 }}>(Vazio = Contínuo)</span></label>
+                  <label>Término <span style={{ fontWeight: 400, opacity: 0.5, textTransform: 'none', letterSpacing: 0 }}>(vazio = contínuo)</span></label>
                   <input type="date" className="form-control" value={createForm.end_date || ''} onChange={e => setCreateForm({ ...createForm, end_date: e.target.value })} />
                 </div>
-                <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '1rem', marginBottom: '1rem' }}>
+                <div style={{ background: 'var(--bg-primary)', border: '0.5px solid var(--border)', borderRadius: 6, padding: '1rem', marginBottom: '1rem' }}>
                   <div className="form-group" style={{ marginBottom: '0.5rem' }}>
-                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><DollarSign size={13} /> Valor por Ciclo ({createForm.billing_cycle || 'Mensal'}) ({cSym})</label>
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                      <DollarSign size={12} /> Valor por Ciclo ({createForm.billing_cycle || 'Mensal'}) ({cSym})
+                    </label>
                     <input type="number" className="form-control" min="0" step="100" placeholder="0" value={createForm.value} onChange={e => setCreateForm({ ...createForm, value: e.target.value })} style={{ fontSize: '1.1rem', fontWeight: 600 }} />
                   </div>
                   {pkgValue > 0 && totalVids > 0 && (
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      ≈ <span style={{ color: 'var(--amber)', fontWeight: 600 }}>{cSym} {perVideo.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</span>/vídeo
-                    </div>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      ≈ <span style={{ color: 'var(--amber)', fontWeight: 600 }}>{cSym} {perVideo.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</span> / vídeo
+                    </p>
                   )}
                 </div>
               </div>

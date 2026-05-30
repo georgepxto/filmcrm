@@ -70,6 +70,14 @@ export default function Login() {
 
   return (
     <div className="login-page">
+      {/* Background layers */}
+      <div className="bg-overlay" />
+      {/* Light effects */}
+      <div className="light-orb-main" />
+      <div className="light-orb-secondary" />
+      <div className="light-beam" />
+      <div className="lens-flare" />
+
       <div className="login-card">
 
         {/* ── Left column — Presentation ── */}
@@ -97,6 +105,7 @@ export default function Login() {
 
         {/* ── Right column — Form ── */}
         <div className="login-right">
+          <div className="glass-inner-glow" />
           <form className="login-form" onSubmit={handleSubmit}>
             <h2>
               {mode === 'login' && <>Bem-vindo <em>de volta</em></>}

@@ -1031,26 +1031,111 @@ tbody tr:hover { background: rgba(255,255,255,0.025); }
 
 /* ── Login — Cinematic ── */
 .login-page {
+  position: relative;
+  width: 100%;
   min-height: 100vh;
-  width: 100vw;
+  overflow: hidden;
+  background: #080503;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
-  background:
-    linear-gradient(135deg, rgba(10,8,4,0.62) 0%, rgba(20,14,4,0.8) 100%),
-    url('/assets/login-bg.jpg') center/cover no-repeat;
-  background-color: #0c0a06;
+}
+
+/* Camada 1 — overlay escuro */
+.bg-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(8,5,3,0.55) 0%,
+    rgba(8,5,3,0.3) 50%,
+    rgba(8,5,3,0.65) 100%
+  );
+  z-index: 2;
+}
+
+/* Orbe principal — canto inferior esquerdo */
+.light-orb-main {
+  position: absolute;
+  left: -80px;
+  bottom: 0;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(
+    circle,
+    rgba(240,130,20,0.5) 0%,
+    rgba(200,80,10,0.2) 40%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  filter: blur(40px);
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* Orbe secundário — canto superior direito */
+.light-orb-secondary {
+  position: absolute;
+  right: 5%;
+  top: -60px;
+  width: 260px;
+  height: 260px;
+  background: radial-gradient(
+    circle,
+    rgba(255,150,30,0.15) 0%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  filter: blur(30px);
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* Raio de luz fino */
+.light-beam {
+  position: absolute;
+  left: 40px;
+  bottom: 120px;
+  width: 3px;
+  height: 340px;
+  background: linear-gradient(
+    to top,
+    rgba(240,140,20,0.55),
+    rgba(240,140,20,0.1),
+    transparent
+  );
+  transform: rotate(-14deg);
+  transform-origin: bottom center;
+  filter: blur(2px);
+  border-radius: 2px;
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* Lens flare */
+.lens-flare {
+  position: absolute;
+  left: 55px;
+  bottom: 130px;
+  width: 12px;
+  height: 12px;
+  background: rgba(255,200,80,0.95);
+  border-radius: 50%;
+  box-shadow:
+    0 0 18px 8px rgba(255,160,40,0.5),
+    0 0 60px 20px rgba(240,120,20,0.2);
+  z-index: 3;
+  pointer-events: none;
 }
 
 .login-card {
+  position: relative;
+  z-index: 10;
   display: flex;
   width: 100%;
   max-width: 1080px;
   min-height: 580px;
-  background: rgba(20, 20, 20, 0.55);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   border: 0.5px solid rgba(255,255,255,0.08);
   border-radius: 16px;
   overflow: hidden;
@@ -1065,6 +1150,7 @@ tbody tr:hover { background: rgba(255,255,255,0.025); }
   flex-direction: column;
   padding: 3rem;
   border-right: 0.5px solid rgba(255,255,255,0.06);
+  background: rgba(15, 12, 8, 0.65);
 }
 
 .login-brand {
@@ -1139,13 +1225,59 @@ tbody tr:hover { background: rgba(255,255,255,0.025); }
   font-size: 11px;
 }
 
-/* Right column */
+/* Right column — liquid glass */
 .login-right {
+  position: relative;
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 3rem;
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(28px) saturate(1.5);
+  -webkit-backdrop-filter: blur(28px) saturate(1.5);
+  border-left: 0.5px solid rgba(255,255,255,0.08);
+  overflow: hidden;
+}
+
+.login-right::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255,200,80,0.35),
+    rgba(255,255,255,0.2),
+    transparent
+  );
+  pointer-events: none;
+}
+
+.login-right::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(135deg, rgba(255,190,80,0.06) 0%, transparent 45%),
+    linear-gradient(to bottom, rgba(255,255,255,0.05) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.glass-inner-glow {
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  width: 180px;
+  height: 180px;
+  background: radial-gradient(
+    circle,
+    rgba(240,160,40,0.1) 0%,
+    transparent 65%
+  );
+  border-radius: 50%;
+  pointer-events: none;
 }
 
 .login-form {
@@ -1344,11 +1476,20 @@ tbody tr:hover { background: rgba(255,255,255,0.025); }
   .login-page {
     padding: 0;
     align-items: stretch;
-    background:
-      linear-gradient(135deg, rgba(10,8,4,0.82) 0%, rgba(20,14,4,0.92) 100%),
-      url('/assets/login-bg.jpg') center/cover no-repeat;
-    background-color: #0c0a06;
   }
+
+  .bg-overlay {
+    background: linear-gradient(
+      135deg,
+      rgba(8,5,3,0.82) 0%,
+      rgba(8,5,3,0.6) 50%,
+      rgba(8,5,3,0.88) 100%
+    );
+  }
+
+  .light-orb-main { display: none; }
+  .light-beam { display: none; }
+  .lens-flare { display: none; }
 
   .login-card {
     flex-direction: column;
@@ -1356,9 +1497,6 @@ tbody tr:hover { background: rgba(255,255,255,0.025); }
     border: none;
     min-height: 100vh;
     box-shadow: none;
-    background: transparent;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
   }
 
   .login-left {

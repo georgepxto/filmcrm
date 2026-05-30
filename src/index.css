@@ -333,6 +333,7 @@ select.form-control { cursor: pointer; }
   max-width: 540px;
   max-height: 90vh;
   overflow-y: auto;
+  overflow-x: hidden;
   box-shadow: var(--shadow-elevated);
   animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   margin: auto;
@@ -367,7 +368,8 @@ select.form-control { cursor: pointer; }
 
 .modal-close:hover { color: var(--text-primary); background: var(--bg-card); }
 
-.modal-body { padding: 1.5rem; }
+.modal-body { padding: 1.5rem; overflow-x: hidden; }
+.modal-body * { max-width: 100%; }
 
 .modal-footer {
   padding: 1rem 1.5rem;
@@ -1477,6 +1479,7 @@ input:checked + .toggle-slider:before {
   .mobile-back-btn { display: inline-flex; }
 }
 
+
 /* ── PostControl Layout ── */
 .post-layout {
   display: grid;
@@ -1491,4 +1494,59 @@ input:checked + .toggle-slider:before {
   .post-layout { grid-template-columns: 1fr; }
   .post-desktop-table { display: none; }
   .post-mobile-list { display: flex; flex-direction: column; gap: 0.5rem; }
+}
+
+/* ── Packages Page ── */
+.pkg-filters {
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.pkg-filters .pkg-search {
+  position: relative;
+  flex: 1 1 200px;
+}
+.pkg-filters > select.form-control { width: auto; min-width: 130px; }
+.pkg-card-row {
+  padding: 1rem 1.25rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: background 0.15s ease;
+}
+.pkg-card-row:hover { background: rgba(255,255,255,0.02); }
+.pkg-card-left { flex: 1; min-width: 0; }
+.pkg-card-progress { width: 180px; flex-shrink: 0; padding: 0 0.5rem; }
+.pkg-card-value {
+  width: 140px;
+  text-align: right;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .pkg-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .pkg-filters .pkg-search { width: 100%; flex: unset; }
+  .pkg-filters > select.form-control { width: 100%; min-width: 0; }
+  .pkg-filters .form-control { height: auto !important; min-height: 44px; }
+  .pkg-card-row { flex-wrap: wrap; gap: 0.4rem; padding: 0.85rem 1rem; }
+  .pkg-card-progress {
+    flex: 1 1 100%;
+    width: 100%;
+    padding: 0.4rem 0 0;
+    border-top: 1px solid var(--border);
+    margin-top: 0.1rem;
+  }
+  .pkg-card-value { width: auto; }
 }

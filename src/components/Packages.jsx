@@ -154,8 +154,8 @@ export default function Packages({ clients, packages, payments, videos, updatePa
       </div>
 
       {/* Filters Bar */}
-      <div className="card" style={{ padding: '0.75rem 1rem', marginBottom: '1.25rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
-        <div style={{ position: 'relative', flex: '1 1 200px' }}>
+      <div className="card pkg-filters">
+        <div className="pkg-search">
           <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
           <input
             type="text"
@@ -166,17 +166,17 @@ export default function Packages({ clients, packages, payments, videos, updatePa
             style={{ paddingLeft: '2rem', height: '36px' }}
           />
         </div>
-        <select className="form-control" value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ width: 'auto', minWidth: 130, height: '36px' }}>
+        <select className="form-control" value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ height: '36px' }}>
           <option value="">Todos os status</option>
           <option value="Ativo">Ativo</option>
           <option value="Pausado">Pausado</option>
           <option value="Concluído">Concluído</option>
         </select>
-        <select className="form-control" value={filterClient} onChange={e => setFilterClient(e.target.value)} style={{ width: 'auto', minWidth: 150, height: '36px' }}>
+        <select className="form-control" value={filterClient} onChange={e => setFilterClient(e.target.value)} style={{ height: '36px' }}>
           <option value="">Todos os clientes</option>
           {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
-        <select className="form-control" value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ width: 'auto', minWidth: 140, height: '36px' }}>
+        <select className="form-control" value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ height: '36px' }}>
           <option value="recent">Mais recente</option>
           <option value="value">Maior valor</option>
           <option value="progress">Maior progresso</option>
@@ -215,11 +215,11 @@ export default function Packages({ clients, packages, payments, videos, updatePa
               >
                 {/* Main Row */}
                 <div
-                  style={{ padding: '1rem 1.25rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '1rem' }}
+                  className="pkg-card-row"
                   onClick={() => setExpandedPkg(isExpanded ? null : pkg.id)}
                 >
                   {/* Left: Client + Package Name */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="pkg-card-left">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                       <span style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>{pkg.name}</span>
                       <span className={`badge badge-${getStatusBadge(pkg.status)}`} style={{ fontSize: '0.65rem' }}>
@@ -243,9 +243,9 @@ export default function Packages({ clients, packages, payments, videos, updatePa
                   </div>
 
                   {/* Middle: Progress */}
-                  <div style={{ width: 150, flexShrink: 0, padding: '0 0.5rem' }}>
+                  <div className="pkg-card-progress">
                     <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
-                      <span>{pkg.edited || 0} Ed, {pkg.delivered} En / {pkg.total_videos} Total</span>
+                      <span>{pkg.edited || 0} editados, {pkg.delivered} entregues / {pkg.total_videos}</span>
                       <span style={{ color: isLow ? 'var(--danger)' : 'var(--amber)' }}>{progress.toFixed(0)}%</span>
                     </div>
                     <div className="progress-bar" style={{ height: '8px' }}>
@@ -254,7 +254,7 @@ export default function Packages({ clients, packages, payments, videos, updatePa
                   </div>
 
                   {/* Right: Value + Expand */}
-                  <div style={{ width: 140, textAlign: 'right', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                  <div className="pkg-card-value">
                     <div>
                       <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
                         {cSym} {(pkg.value || 0).toLocaleString('pt-BR')}

@@ -7,15 +7,16 @@ import { useToast } from './Toast';
 import { useAuth } from '../contexts/AuthContext';
 
 /* ── Local micro-components ── */
-const OutlineBtn = ({ onClick, children, style = {} }) => (
+const OutlineBtn = ({ onClick, children, style = {}, disabled = false }) => (
   <button
     type="button"
     onClick={onClick}
+    disabled={disabled}
     style={{
-      background: 'transparent', border: '1px solid var(--amber)', color: 'var(--amber)',
+      background: 'transparent', border: '1px solid var(--amber)', color: disabled ? 'var(--text-muted)' : 'var(--amber)',
       borderRadius: 6, padding: '0.5rem 1.15rem', fontSize: '0.85rem', fontWeight: 600,
-      cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
-      transition: 'background 0.18s', fontFamily: 'var(--font-body)', ...style,
+      cursor: disabled ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+      transition: 'background 0.18s', fontFamily: 'var(--font-body)', opacity: disabled ? 0.5 : 1, ...style,
     }}
     onMouseEnter={e => { e.currentTarget.style.background = 'rgba(212,135,10,0.08)'; }}
     onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
@@ -440,7 +441,7 @@ export default function Packages({ clients, packages, payments, videos, updatePa
           <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setShowCreateModal(false); }}>
             <div className="modal">
               <div className="modal-header">
-                <h3><Package size={16} /> Novo Pacote</h3>
+                <h3 style={{ fontWeight: 400 }}>Novo Pacote</h3>
                 <button className="modal-close" onClick={() => setShowCreateModal(false)}><X size={18} /></button>
               </div>
               <div className="modal-body">
@@ -508,9 +509,9 @@ export default function Packages({ clients, packages, payments, videos, updatePa
               </div>
               <div className="modal-footer">
                 <button className="btn btn-secondary" onClick={() => setShowCreateModal(false)}>Cancelar</button>
-                <button className="btn btn-primary" onClick={saveNewPkg} disabled={saving || !createForm.name.trim() || !createForm.client_id}>
+                <OutlineBtn onClick={saveNewPkg} disabled={saving || !createForm.name.trim() || !createForm.client_id}>
                   {saving ? 'Salvando...' : 'Criar Pacote'}
-                </button>
+                </OutlineBtn>
               </div>
             </div>
           </div>

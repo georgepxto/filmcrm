@@ -40,27 +40,29 @@ const SecLabel = ({ children, style = {} }) => (
   </span>
 );
 
-const OutlineBtn = ({ onClick, children, size = 'sm', style = {} }) => (
+const OutlineBtn = ({ onClick, children, style = {}, disabled = false }) => (
   <button
     type="button"
     onClick={onClick}
+    disabled={disabled}
     style={{
       background: 'transparent',
       border: '1px solid var(--amber)',
-      color: 'var(--amber)',
+      color: disabled ? 'var(--text-muted)' : 'var(--amber)',
       borderRadius: 6,
       padding: '0.5rem 1.15rem',
       fontSize: '0.85rem',
       fontWeight: 600,
-      cursor: 'pointer',
+      cursor: disabled ? 'not-allowed' : 'pointer',
       display: 'inline-flex',
       alignItems: 'center',
       gap: '0.3rem',
-      transition: 'background 0.18s, color 0.18s',
+      transition: 'background 0.18s',
       fontFamily: 'var(--font-body)',
+      opacity: disabled ? 0.5 : 1,
       ...style,
     }}
-    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(212,135,10,0.08)'; }}
+    onMouseEnter={e => { if (!disabled) e.currentTarget.style.background = 'rgba(212,135,10,0.08)'; }}
     onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
   >
     {children}
@@ -591,10 +593,15 @@ export default function Clients({
     <div className="fade-in">
 
       {/* ── Header ── */}
-      <div className="page-header">
-        <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, letterSpacing: '-0.02em' }}>
-          Clientes & Pacotes
-        </h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem' }}>
+        <div>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, letterSpacing: '-0.02em', fontSize: '2rem', marginBottom: '0.3rem', color: 'var(--text-primary)' }}>
+            Clientes & Pacotes
+          </h2>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            Gerencie seus clientes, pacotes de serviço e referências visuais.
+          </p>
+        </div>
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
 
           {/* Search */}
@@ -703,7 +710,7 @@ export default function Clients({
         <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setShowClientModal(false); }}>
           <div className="modal">
             <div className="modal-header">
-              <h3><Users size={16} /> {editClientData ? 'Editar Cliente' : 'Novo Cliente'}</h3>
+              <h3 style={{ fontWeight: 400 }}>{editClientData ? 'Editar Cliente' : 'Novo Cliente'}</h3>
               <button className="modal-close" onClick={() => setShowClientModal(false)}><X size={18} /></button>
             </div>
             <div className="modal-body">
@@ -728,9 +735,9 @@ export default function Clients({
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setShowClientModal(false)}>Cancelar</button>
-              <button className="btn btn-primary" onClick={saveClient} disabled={saving}>
+              <OutlineBtn onClick={saveClient} disabled={saving}>
                 {saving ? 'Salvando...' : editClientData ? 'Salvar' : 'Cadastrar'}
-              </button>
+              </OutlineBtn>
             </div>
           </div>
         </div>
@@ -750,7 +757,7 @@ export default function Clients({
             <div className="modal">
               <div className="modal-header">
                 <div>
-                  <h3><Package size={16} /> {isEditing ? 'Editar Pacote' : 'Novo Pacote'}</h3>
+                  <h3 style={{ fontWeight: 400 }}>{isEditing ? 'Editar Pacote' : 'Novo Pacote'}</h3>
                   {clientName && (
                     <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
                       para <span style={{ color: 'var(--amber)', fontWeight: 600 }}>{clientName}</span>
@@ -867,9 +874,9 @@ export default function Clients({
               </div>
               <div className="modal-footer">
                 <button className="btn btn-secondary" onClick={() => setShowPackageModal(false)}>Cancelar</button>
-                <button className="btn btn-primary" onClick={savePkg} disabled={saving || !pkgForm.name.trim()}>
-                  {saving ? 'Salvando...' : isEditing ? 'Salvar Alterações' : 'Criar Pacote'}
-                </button>
+                <OutlineBtn onClick={savePkg} disabled={saving || !pkgForm.name.trim()}>
+                  {saving ? 'Salvando...' : isEditing ? 'Salvar alterações' : 'Criar Pacote'}
+                </OutlineBtn>
               </div>
             </div>
           </div>
@@ -881,7 +888,7 @@ export default function Clients({
         <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setShowRefModal(false); }}>
           <div className="modal" style={{ maxWidth: 500 }}>
             <div className="modal-header">
-              <h3><Bookmark size={16} /> {editRefData ? 'Editar Referência' : 'Nova Referência'}</h3>
+              <h3 style={{ fontWeight: 400 }}>{editRefData ? 'Editar Referência' : 'Nova Referência'}</h3>
               <button className="modal-close" onClick={() => setShowRefModal(false)}><X size={18} /></button>
             </div>
             <div className="modal-body">
@@ -900,9 +907,9 @@ export default function Clients({
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setShowRefModal(false)}>Cancelar</button>
-              <button className="btn btn-primary" onClick={saveRef} disabled={saving}>
+              <OutlineBtn onClick={saveRef} disabled={saving}>
                 {saving ? 'Salvando...' : 'Salvar'}
-              </button>
+              </OutlineBtn>
             </div>
           </div>
         </div>

@@ -5,15 +5,16 @@ import ConfirmModal from './ConfirmModal';
 import { useAuth } from '../contexts/AuthContext';
 
 /* ── Micro-components ── */
-const OutlineBtn = ({ onClick, children, style = {} }) => (
+const OutlineBtn = ({ onClick, children, style = {}, disabled = false }) => (
   <button
     type="button"
     onClick={onClick}
+    disabled={disabled}
     style={{
-      background: 'transparent', border: '1px solid var(--amber)', color: 'var(--amber)',
+      background: 'transparent', border: '1px solid var(--amber)', color: disabled ? 'var(--text-muted)' : 'var(--amber)',
       borderRadius: 6, padding: '0.5rem 1.15rem', fontSize: '0.85rem', fontWeight: 600,
-      cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
-      transition: 'background 0.18s', fontFamily: 'var(--font-body)', ...style,
+      cursor: disabled ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+      transition: 'background 0.18s', fontFamily: 'var(--font-body)', opacity: disabled ? 0.5 : 1, ...style,
     }}
     onMouseEnter={e => { e.currentTarget.style.background = 'rgba(212,135,10,0.08)'; }}
     onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
@@ -459,7 +460,7 @@ export default function Payments({ clients, packages, payments, addPayment, dele
           <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setShowModal(false); }}>
             <div className="modal">
               <div className="modal-header">
-                <h3><DollarSign size={16} /> Registrar Pagamento</h3>
+                <h3 style={{ fontWeight: 400 }}>Registrar Pagamento</h3>
                 <button className="modal-close" onClick={() => setShowModal(false)}><X size={18} /></button>
               </div>
               <div className="modal-body">
@@ -528,9 +529,9 @@ export default function Payments({ clients, packages, payments, addPayment, dele
               </div>
               <div className="modal-footer">
                 <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
-                <button className="btn btn-primary" onClick={savePayment} disabled={saving || exceedsOwed || !form.amount || Number(form.amount) <= 0}>
+                <OutlineBtn onClick={savePayment} disabled={saving || exceedsOwed || !form.amount || Number(form.amount) <= 0}>
                   {saving ? 'Salvando...' : `Registrar ${cSym} ${Number(form.amount).toLocaleString('pt-BR')}`}
-                </button>
+                </OutlineBtn>
               </div>
             </div>
           </div>

@@ -6,15 +6,16 @@ import {
 } from 'lucide-react';
 import { useToast } from './Toast';
 
-const OutlineBtn = ({ onClick, children }) => (
+const OutlineBtn = ({ onClick, children, disabled = false }) => (
   <button
     type="button"
     onClick={onClick}
+    disabled={disabled}
     style={{
-      background: 'transparent', border: '1px solid var(--amber)', color: 'var(--amber)',
+      background: 'transparent', border: '1px solid var(--amber)', color: disabled ? 'var(--text-muted)' : 'var(--amber)',
       borderRadius: 6, padding: '0.5rem 1.15rem', fontSize: '0.85rem', fontWeight: 600,
-      cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
-      transition: 'background 0.18s', fontFamily: 'var(--font-body)',
+      cursor: disabled ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+      transition: 'background 0.18s', fontFamily: 'var(--font-body)', opacity: disabled ? 0.5 : 1,
     }}
     onMouseEnter={e => { e.currentTarget.style.background = 'rgba(212,135,10,0.08)'; }}
     onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
@@ -203,8 +204,13 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
 
   return (
     <div className="fade-in">
-      <div className="page-header" style={{ marginBottom: '0.5rem' }}>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, letterSpacing: '-0.02em' }}>Pipeline de Produção</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem' }}>
+        <div>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, letterSpacing: '-0.02em', fontSize: '2rem', marginBottom: '0.3rem', color: 'var(--text-primary)' }}>Pipeline de Produção</h2>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            Acompanhe o status de edição, entrega e publicação de cada vídeo.
+          </p>
+        </div>
         <OutlineBtn onClick={() => openModal()}>
           + Novo Vídeo
         </OutlineBtn>
@@ -545,7 +551,7 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
         <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setShowModal(false); }}>
           <div className="modal">
             <div className="modal-header">
-              <h3><Film size={18} /> {editVideoData ? 'Editar Vídeo' : 'Novo Vídeo'}</h3>
+              <h3 style={{ fontWeight: 400 }}>{editVideoData ? 'Editar Vídeo' : 'Novo Vídeo'}</h3>
               <button className="modal-close" onClick={() => setShowModal(false)}><X size={18} /></button>
             </div>
             <div className="modal-body">
@@ -576,9 +582,9 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
-              <button className="btn btn-primary" onClick={saveVid} disabled={saving}>
+              <OutlineBtn onClick={saveVid} disabled={saving}>
                 {saving ? 'Salvando...' : editVideoData ? 'Salvar' : 'Adicionar'}
-              </button>
+              </OutlineBtn>
             </div>
           </div>
         </div>

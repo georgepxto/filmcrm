@@ -364,7 +364,7 @@ export default function Settings() {
         <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem', marginBottom: '1.25rem' }}>
           As cores âmbar são preservadas em ambos os modos.
         </p>
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
           <ThemeCard value="dark" label="Escuro" />
           <ThemeCard value="light" label="Claro" />
         </div>

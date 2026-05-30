@@ -2,7 +2,7 @@
 import {
   Film, Plus, X, Calendar, CheckSquare, Square, Search,
   Trash2, Edit3, MessageCircle, Clock, ClipboardList, User, CheckCircle, Activity,
-  PieChart, AlertCircle, StickyNote
+  AlertCircle
 } from 'lucide-react';
 import { useToast } from './Toast';
 import ConfirmModal from './ConfirmModal';
@@ -458,8 +458,8 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
           
           {/* Widget 1: Produtividade */}
           <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '1.25rem' }}>
-            <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', fontSize: '0.9rem', color: 'var(--text-primary)' }}>
-              <PieChart size={16} color="var(--primary)" /> Produtividade
+            <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', fontSize: '0.9rem', color: 'var(--text-primary)', fontFamily: 'var(--font-body)', fontWeight: 500 }}>
+              Produtividade
             </h4>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
@@ -483,8 +483,8 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
 
           {/* Widget 2: Próximos Prazos */}
           <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '1.25rem' }}>
-            <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', fontSize: '0.9rem', color: 'var(--text-primary)' }}>
-              <Calendar size={16} color="var(--primary)" /> Próximos Prazos
+            <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', fontSize: '0.9rem', color: 'var(--text-primary)', fontFamily: 'var(--font-body)', fontWeight: 500 }}>
+              Próximos Prazos
             </h4>
             {upcomingDeadlines.length === 0 ? (
               <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Nenhum prazo urgente.</p>
@@ -496,7 +496,7 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
                       <p style={{ fontSize: '0.82rem', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{v.title}</p>
                       <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{getName(v.client_id)}</p>
                     </div>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--primary)', flexShrink: 0, background: 'rgba(212, 135, 10, 0.1)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--amber)', flexShrink: 0, background: 'rgba(212, 135, 10, 0.1)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
                       {new Date(v.planned_date + 'T12:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
                     </span>
                   </div>
@@ -507,8 +507,8 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
 
           {/* Widget 3: Bloco de Notas */}
           <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '1.25rem', display: 'flex', flexDirection: 'column' }}>
-            <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', fontSize: '0.9rem', color: 'var(--text-primary)' }}>
-              <StickyNote size={16} color="var(--primary)" /> Notas Rápidas
+            <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', fontSize: '0.9rem', color: 'var(--text-primary)', fontFamily: 'var(--font-body)', fontWeight: 500 }}>
+              Notas Rápidas
             </h4>
             <textarea
               value={localNotes}
@@ -522,7 +522,7 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
                 padding: '0.75rem', fontSize: '0.82rem', fontFamily: 'inherit',
                 outline: 'none', transition: 'border-color 0.2s'
               }}
-              onFocus={e => e.target.style.borderColor = 'var(--primary)'}
+              onFocus={e => e.target.style.borderColor = 'var(--amber)'}
               onMouseLeave={e => { if (document.activeElement !== e.target) e.target.style.borderColor = 'var(--border)' }}
             />
             <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '0.5rem', textAlign: 'right' }}>Salva automaticamente ao sair</p>
@@ -532,8 +532,8 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
           {history.length > 0 && (
             <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '1.25rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: 'var(--text-primary)', flexWrap: 'wrap' }}>
-                  <Clock size={16} color="var(--amber)" /> Histórico da Sessão
+                <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: 'var(--text-primary)', fontFamily: 'var(--font-body)', fontWeight: 500, flexWrap: 'wrap' }}>
+                  Histórico da Sessão
                   <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 400, fontFamily: 'var(--font-body)' }}>(expira em 24h)</span>
                 </h4>
                 <button onClick={() => setHistory([])} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.7rem' }}>

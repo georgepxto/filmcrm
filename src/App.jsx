@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ThemeProvider } from './contexts/ThemeContext';
-import { Menu, LogOut, Loader } from 'lucide-react';
+import { ChevronRight, LogOut, Loader } from 'lucide-react';
 import BrandLogo from './components/BrandLogo';
 import {
   BrowserRouter, Routes, Route, NavLink, Navigate, useNavigate, useLocation
@@ -102,7 +102,7 @@ function AppLayout() {
       {/* Mobile toggle — only visible when sidebar is closed */}
       {!sidebarOpen && (
         <button className="mobile-toggle" onClick={() => setSidebarOpen(true)}>
-          <Menu size={20} />
+          <ChevronRight size={20} />
         </button>
       )}
 

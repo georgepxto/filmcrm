@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { Settings as SettingsIcon, User, Lock, Image as ImageIcon, Save, Building, DollarSign, FileText, Smartphone, Check, X, UploadCloud } from 'lucide-react';
+import { Settings as SettingsIcon, User, Lock, Image as ImageIcon, Save, Building, DollarSign, FileText, Smartphone, Check, X, UploadCloud, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { useToast } from './Toast';
 import { supabase } from '../lib/supabase';
 
 export default function Settings() {
   const { user, updateProfile } = useAuth();
+  const { theme, setTheme } = useTheme();
   const toast = useToast();
 
   const [name, setName] = useState(user?.user_metadata?.full_name || '');
@@ -330,6 +332,105 @@ export default function Settings() {
               </button>
             </div>
           </form>
+        </div>
+
+        {/* Appearance Settings */}
+        <div className="card" style={{ padding: '1.5rem' }}>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', color: 'var(--text-primary)' }}>
+            <Sun size={20} color="var(--amber)" /> Aparência
+          </h3>
+          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
+            Escolha o tema da interface. As cores quentes âmbar são preservadas em ambos os modos.
+          </p>
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <button
+              type="button"
+              onClick={() => setTheme('dark')}
+              style={{
+                flex: 1,
+                padding: '1rem',
+                borderRadius: 'var(--radius-lg)',
+                border: theme === 'dark' ? '2px solid var(--amber)' : '2px solid var(--border)',
+                background: theme === 'dark' ? 'var(--amber-glow)' : 'var(--bg-secondary)',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '0.75rem',
+              }}
+            >
+              <div style={{
+                width: '100%',
+                height: '64px',
+                borderRadius: '8px',
+                background: 'linear-gradient(135deg, #0c0b09 0%, #141210 100%)',
+                border: '1px solid #201e1b',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                padding: '8px',
+              }}>
+                <div style={{ width: '28px', height: '100%', borderRadius: '4px', background: '#0e0d0b' }} />
+                <div style={{ flex: 1, height: '100%', borderRadius: '4px', background: '#141210', display: 'flex', flexDirection: 'column', gap: '4px', padding: '6px' }}>
+                  <div style={{ height: '6px', borderRadius: '3px', background: '#201e1b', width: '70%' }} />
+                  <div style={{ height: '6px', borderRadius: '3px', background: '#201e1b', width: '50%' }} />
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Moon size={15} color={theme === 'dark' ? 'var(--amber)' : 'var(--text-muted)'} />
+                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: theme === 'dark' ? 'var(--amber)' : 'var(--text-secondary)' }}>
+                  Escuro
+                </span>
+                {theme === 'dark' && <Check size={14} color="var(--amber)" />}
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setTheme('light')}
+              style={{
+                flex: 1,
+                padding: '1rem',
+                borderRadius: 'var(--radius-lg)',
+                border: theme === 'light' ? '2px solid var(--amber)' : '2px solid var(--border)',
+                background: theme === 'light' ? 'var(--amber-glow)' : 'var(--bg-secondary)',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '0.75rem',
+              }}
+            >
+              <div style={{
+                width: '100%',
+                height: '64px',
+                borderRadius: '8px',
+                background: 'linear-gradient(135deg, #f0ece3 0%, #ffffff 100%)',
+                border: '1px solid #e2dbd0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                padding: '8px',
+              }}>
+                <div style={{ width: '28px', height: '100%', borderRadius: '4px', background: '#ebe7de' }} />
+                <div style={{ flex: 1, height: '100%', borderRadius: '4px', background: '#fff', display: 'flex', flexDirection: 'column', gap: '4px', padding: '6px' }}>
+                  <div style={{ height: '6px', borderRadius: '3px', background: '#e2dbd0', width: '70%' }} />
+                  <div style={{ height: '6px', borderRadius: '3px', background: '#e2dbd0', width: '50%' }} />
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Sun size={15} color={theme === 'light' ? 'var(--amber)' : 'var(--text-muted)'} />
+                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: theme === 'light' ? 'var(--amber)' : 'var(--text-secondary)' }}>
+                  Claro
+                </span>
+                {theme === 'light' && <Check size={14} color="var(--amber)" />}
+              </div>
+            </button>
+          </div>
         </div>
 
         {/* Security Settings */}

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ThemeProvider } from './contexts/ThemeContext';
 import {
   LayoutDashboard, CalendarDays, Users, Film, DollarSign, Package,
   Menu, X, Clapperboard, LogOut, Loader, Settings as SettingsIcon
@@ -185,11 +186,13 @@ function AuthGate() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <ToastProvider>
-          <AuthGate />
-        </ToastProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <ToastProvider>
+            <AuthGate />
+          </ToastProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }

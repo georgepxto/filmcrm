@@ -3,6 +3,7 @@ import { X, RefreshCw, MessageCircle, ChevronDown, Plus } from 'lucide-react';
 import { SERVICE_TYPES } from '../data';
 import { useToast } from './Toast';
 import { useGoogleCalendar } from '../hooks/useGoogleCalendar';
+import ConfirmModal from './ConfirmModal';
 
 const formatPhone = (val) => {
   if (!val) return '';
@@ -84,6 +85,7 @@ export default function Calendar({ clients, sessions, addSession, updateSession,
   const [showNewClientModal, setShowNewClientModal] = useState(false);
   const [newClientForm, setNewClientForm] = useState({ name: '', contact: '', email: '' });
   const [savingClient, setSavingClient] = useState(false);
+  const [deleteSessionConfirm, setDeleteSessionConfirm] = useState(null);
 
   const emptyForm = { client_id: '', title: '', date: '', time_start: '09:00', time_end: '10:00', service: SERVICE_TYPES[0], status: 'Pendente', is_all_day: false, date_end: '' };
   const [form, setForm] = useState(emptyForm);
@@ -323,7 +325,9 @@ export default function Calendar({ clients, sessions, addSession, updateSession,
 
       {/* ── Header ── */}
       <div style={{ marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
+
+        {/* Title + Google Calendar */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
           <div>
             <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', fontWeight: 400, letterSpacing: '-0.02em', marginBottom: '0.3rem', color: 'var(--text-primary)' }}>
               Calendário
@@ -333,60 +337,60 @@ export default function Calendar({ clients, sessions, addSession, updateSession,
             </p>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-            {gcal.ready && (
-              gcal.isSignedIn ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <IconBtn onClick={fetchGoogleEvents} title="Sincronizar">
-                    <RefreshCw size={13} className={gcal.loading ? 'login-spinner' : ''} />
-                  </IconBtn>
-                  <button
-                    onClick={gcal.signOut}
-                    style={{ background: 'none', border: '0.5px solid rgba(52,211,153,0.3)', borderRadius: 6, padding: '0.25rem 0.65rem', fontSize: '0.7rem', color: 'rgba(52,211,153,0.7)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', fontFamily: 'var(--font-body)' }}
-                  >
-                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'rgba(52,211,153,0.65)', display: 'inline-block' }} />
-                    Google conectado
-                  </button>
-                </div>
-              ) : (
+          {gcal.ready && (
+            gcal.isSignedIn ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
+                <IconBtn onClick={fetchGoogleEvents} title="Sincronizar">
+                  <RefreshCw size={13} className={gcal.loading ? 'login-spinner' : ''} />
+                </IconBtn>
                 <button
-                  onClick={gcal.signIn}
-                  style={{ background: 'transparent', border: '1px solid var(--info)', color: 'var(--info)', borderRadius: 6, padding: '0.5rem 1.15rem', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', transition: 'background 0.18s', fontFamily: 'var(--font-body)' }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(96,165,250,0.08)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                  onClick={gcal.signOut}
+                  style={{ background: 'none', border: '0.5px solid rgba(52,211,153,0.3)', borderRadius: 6, padding: '0.25rem 0.65rem', fontSize: '0.7rem', color: 'rgba(52,211,153,0.7)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem', fontFamily: 'var(--font-body)' }}
                 >
-                  Conectar Google Agenda
+                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'rgba(52,211,153,0.65)', display: 'inline-block' }} />
+                  Google conectado
                 </button>
-              )
-            )}
-            <select value={filterClient} onChange={e => setFilterClient(e.target.value)} style={fieldStyle}>
-              <option value="">Todos os clientes</option>
-              {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </div>
+              </div>
+            ) : (
+              <button
+                onClick={gcal.signIn}
+                style={{ background: 'transparent', border: '1px solid var(--info)', color: 'var(--info)', borderRadius: 6, padding: '0.5rem 1.15rem', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', transition: 'background 0.18s', fontFamily: 'var(--font-body)', flexShrink: 0 }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(96,165,250,0.08)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+              >
+                Conectar Google Agenda
+              </button>
+            )
+          )}
         </div>
 
-        {/* Month navigator */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.1rem' }}>
-          <button
-            onClick={() => setViewDate(new Date(year, month - 1, 1))}
-            style={navBtnStyle}
-            onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; }}
-            onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; }}
-          >
-            ‹
-          </button>
-          <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.15rem', fontWeight: 400, color: 'var(--text-primary)', minWidth: 145, textAlign: 'center', letterSpacing: '-0.01em', userSelect: 'none' }}>
-            {monthNames[month]} {year}
-          </span>
-          <button
-            onClick={() => setViewDate(new Date(year, month + 1, 1))}
-            style={navBtnStyle}
-            onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; }}
-            onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; }}
-          >
-            ›
-          </button>
+        {/* Month navigator + filter */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.1rem' }}>
+            <button
+              onClick={() => setViewDate(new Date(year, month - 1, 1))}
+              style={navBtnStyle}
+              onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; }}
+            >
+              ‹
+            </button>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.15rem', fontWeight: 400, color: 'var(--text-primary)', minWidth: 145, textAlign: 'center', letterSpacing: '-0.01em', userSelect: 'none' }}>
+              {monthNames[month]} {year}
+            </span>
+            <button
+              onClick={() => setViewDate(new Date(year, month + 1, 1))}
+              style={navBtnStyle}
+              onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; }}
+            >
+              ›
+            </button>
+          </div>
+          <select value={filterClient} onChange={e => setFilterClient(e.target.value)} style={fieldStyle}>
+            <option value="">Todos os clientes</option>
+            {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
         </div>
       </div>
 
@@ -503,7 +507,13 @@ export default function Calendar({ clients, sessions, addSession, updateSession,
                     Agendamentos do dia ({dayEvents.length})
                   </SecLabel>
                   {dayEvents.map(ev => (
-                    <div key={ev.id} style={{ padding: '0.75rem 1rem', border: '0.5px solid var(--border)', borderRadius: 8, marginBottom: '0.4rem', background: 'var(--bg-card)' }}>
+                    <div
+                      key={ev.id}
+                      onClick={() => editSess(ev)}
+                      style={{ padding: '0.75rem 1rem', border: `0.5px solid ${editSession?.id === ev.id ? 'rgba(212,135,10,0.5)' : 'var(--border)'}`, borderRadius: 8, marginBottom: '0.4rem', background: editSession?.id === ev.id ? 'rgba(212,135,10,0.04)' : 'var(--bg-card)', cursor: 'pointer', transition: 'border-color 0.18s, background 0.18s' }}
+                      onMouseEnter={e => { if (editSession?.id !== ev.id) { e.currentTarget.style.borderColor = 'rgba(212,135,10,0.3)'; e.currentTarget.style.background = 'var(--bg-card-hover)'; } }}
+                      onMouseLeave={e => { if (editSession?.id !== ev.id) { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--bg-card)'; } }}
+                    >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <p style={{ fontFamily: 'var(--font-display)', fontSize: '0.95rem', fontWeight: 400, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.01em' }}>
@@ -522,6 +532,7 @@ export default function Calendar({ clients, sessions, addSession, updateSession,
                             <a
                               href={`https://wa.me/${getClientPhone(ev.client_id).replace(/\D/g, '')}`}
                               target="_blank" rel="noopener noreferrer"
+                              onClick={e => e.stopPropagation()}
                               style={{ background: 'none', border: 'none', color: 'var(--text-muted)', width: 24, height: 24, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4, cursor: 'pointer', transition: 'color 0.18s', textDecoration: 'none' }}
                               title="WhatsApp"
                               onMouseEnter={e => { e.currentTarget.style.color = '#25D366'; }}
@@ -530,15 +541,7 @@ export default function Calendar({ clients, sessions, addSession, updateSession,
                               <MessageCircle size={13} />
                             </a>
                           )}
-                          <button
-                            onClick={() => editSess(ev)}
-                            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '0.72rem', cursor: 'pointer', padding: '0.2rem 0.35rem', borderRadius: 4, transition: 'color 0.18s', fontFamily: 'var(--font-body)' }}
-                            onMouseEnter={e => { e.currentTarget.style.color = 'var(--amber)'; }}
-                            onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; }}
-                          >
-                            Editar
-                          </button>
-                          <IconBtn onClick={() => handleDeleteSession(ev)} hoverColor="var(--danger)" title="Remover">
+                          <IconBtn onClick={e => { e.stopPropagation(); setDeleteSessionConfirm(ev); }} hoverColor="var(--danger)" title="Remover">
                             <X size={13} />
                           </IconBtn>
                         </div>
@@ -728,6 +731,18 @@ export default function Calendar({ clients, sessions, addSession, updateSession,
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── Delete session confirm ── */}
+      {deleteSessionConfirm && (
+        <ConfirmModal
+          title="Remover agendamento?"
+          message={`"${deleteSessionConfirm.title || getClientName(deleteSessionConfirm.client_id)}" será removido permanentemente.`}
+          confirmLabel="Remover"
+          danger
+          onConfirm={async () => { await handleDeleteSession(deleteSessionConfirm); setDeleteSessionConfirm(null); }}
+          onCancel={() => setDeleteSessionConfirm(null)}
+        />
       )}
 
       {/* ── New Client Modal ── */}

@@ -302,7 +302,7 @@ export default function Settings() {
       <section style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '0.5px solid var(--border)' }}>
         <SecLabel>Empresa &amp; Faturamento</SecLabel>
         <form onSubmit={handleUpdateBusinessData} style={{ marginTop: '1.5rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          <div className="form-row">
             <Field label="Nome da produtora / empresa">
               <input type="text" className="form-control" style={inputBase} value={companyName} onChange={e => setCompanyName(e.target.value)} placeholder="Ex: Alba Effect Films" />
             </Field>
@@ -374,7 +374,7 @@ export default function Settings() {
       <section style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '0.5px solid var(--border)' }}>
         <SecLabel>Segurança</SecLabel>
         <form onSubmit={handleUpdatePassword} style={{ marginTop: '1.5rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '0.75rem' }}>
+          <div className="form-row" style={{ marginBottom: '0.75rem' }}>
             <Field label="Nova senha">
               <input type="password" className="form-control" style={inputBase} value={password} onChange={e => setPassword(e.target.value)} placeholder="Nova senha" />
             </Field>

@@ -5,6 +5,7 @@ import {
   PieChart, AlertCircle, StickyNote
 } from 'lucide-react';
 import { useToast } from './Toast';
+import ConfirmModal from './ConfirmModal';
 
 const OutlineBtn = ({ onClick, children, disabled = false }) => (
   <button
@@ -26,6 +27,19 @@ const OutlineBtn = ({ onClick, children, disabled = false }) => (
 
 const STAGE_ORDER = ['edited', 'delivered', 'posted'];
 
+const filterFieldStyle = {
+  height: '30px',
+  background: 'var(--bg-elevated)',
+  border: '0.5px solid var(--border)',
+  borderRadius: 6,
+  fontSize: '0.75rem',
+  color: 'var(--text-secondary)',
+  fontFamily: 'var(--font-body)',
+  padding: '0 0.65rem',
+  outline: 'none',
+  cursor: 'pointer',
+};
+
 const getStatus = (v) => {
   if (v.posted) return { label: 'Postado', color: '#34d399', bg: 'rgba(52,211,153,0.12)' };
   if (v.delivered) return { label: 'Entregue', color: '#60a5fa', bg: 'rgba(96,165,250,0.12)' };
@@ -42,6 +56,7 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
   const [saving, setSaving] = useState(false);
   const [hoveredRow, setHoveredRow] = useState(null);
   const [history, setHistory] = useState([]);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   const getStatusColor = (label) => {
     if (label === 'Postado') return 'var(--success)';
@@ -221,13 +236,14 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
       </p>
 
       {/* Filters */}
-      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-        <div style={{ position: 'relative', flex: '1 1 200px', maxWidth: 300 }}>
-          <Search size={14} style={{ position: 'absolute', left: '0.6rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-          <input type="text" className="form-control" placeholder="Buscar vídeo..." value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)} style={{ paddingLeft: '2rem', fontSize: '0.82rem' }} />
+      <div className="pkg-filters" style={{ padding: 0, marginBottom: '1rem', gap: '0.5rem' }}>
+        <div className="pkg-search" style={{ position: 'relative' }}>
+          <Search size={12} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', opacity: 0.5, pointerEvents: 'none' }} />
+          <input type="text" placeholder="Buscar vídeo..." value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            style={{ ...filterFieldStyle, paddingLeft: '1.75rem', width: '100%', cursor: 'text' }} />
         </div>
-        <select className="form-control" style={{ width: 'auto', minWidth: 160, maxWidth: 250, fontSize: '0.82rem' }} value={filterClient} onChange={e => setFilterClient(e.target.value)}>
+        <select style={filterFieldStyle} value={filterClient} onChange={e => setFilterClient(e.target.value)}>
           <option value="">Todos os clientes</option>
           {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
@@ -363,7 +379,7 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
                         onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}>
                         <Edit3 size={13} />
                       </button>
-                      <button onClick={() => handleDelete(v.id)} title="Excluir"
+                      <button onClick={() => setDeleteConfirm(v)} title="Excluir"
                         style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.25rem', borderRadius: '4px' }}
                         onMouseEnter={e => e.currentTarget.style.color = 'var(--danger)'}
                         onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}>
@@ -426,7 +442,7 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
                       <button onClick={e => { e.stopPropagation(); openModal(v); }} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.25rem' }}>
                         <Edit3 size={13} />
                       </button>
-                      <button onClick={e => { e.stopPropagation(); handleDelete(v.id); }} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.25rem' }}>
+                      <button onClick={e => { e.stopPropagation(); setDeleteConfirm(v); }} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.25rem' }}>
                         <Trash2 size={13} />
                       </button>
                     </div>
@@ -545,6 +561,18 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
 
         </div>
       </div>
+
+      {/* Delete confirm */}
+      {deleteConfirm && (
+        <ConfirmModal
+          title="Excluir vídeo?"
+          message={`"${deleteConfirm.title}" será removido do pipeline permanentemente.`}
+          confirmLabel="Excluir"
+          danger
+          onConfirm={async () => { await handleDelete(deleteConfirm.id); setDeleteConfirm(null); }}
+          onCancel={() => setDeleteConfirm(null)}
+        />
+      )}
 
       {/* Modal */}
       {showModal && (

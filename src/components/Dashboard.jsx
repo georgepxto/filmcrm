@@ -116,6 +116,8 @@ export default function Dashboard({ clients, packages, sessions, payments, video
     .reduce((s, p) => s + p.amount, 0);
 
   const dimBar = theme === 'light' ? 'rgba(0,0,0,0.09)' : 'rgba(255,255,255,0.07)';
+  const tooltipTextColor = theme === 'light' ? '#1c1916' : '#f0ece4';
+  const tooltipLabelColor = theme === 'light' ? '#8a7e72' : '#a09888';
 
   const card = (style = {}) => ({
     border: '0.5px solid var(--border)',
@@ -279,46 +281,80 @@ export default function Dashboard({ clients, packages, sessions, payments, video
               <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', lineHeight: 1.9 }}>
                 Tudo tranquilo por aqui — suas próximas gravações aparecem quando agendadas.
               </p>
-            ) : (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Data</th>
-                      <th>Horário</th>
-                      <th>Cliente</th>
-                      <th>Serviço</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {weekSessions
-                      .sort((a, b) =>
-                        a.date.localeCompare(b.date) ||
-                        (a.time_start || a.time || '').localeCompare(b.time_start || b.time || '')
-                      )
-                      .map(s => (
-                        <tr key={s.id}>
-                          <td style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
-                            {new Date(s.date + 'T12:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                          </td>
-                          <td>
-                            {(s.time_start || s.time || '').slice(0, 5) || '—'}
-                            {s.time_end && ` — ${s.time_end.slice(0, 5)}`}
-                          </td>
-                          <td style={{ color: 'var(--text-primary)' }}>{getClientName(s.client_id)}</td>
-                          <td>{s.service}</td>
-                          <td>
-                            <span className={`badge badge-${(s.status || '').toLowerCase()}`}>
-                              {s.status}
-                            </span>
-                          </td>
+            ) : (() => {
+              const sorted = [...weekSessions].sort((a, b) =>
+                a.date.localeCompare(b.date) ||
+                (a.time_start || a.time || '').localeCompare(b.time_start || b.time || '')
+              );
+              return (
+                <>
+                  {/* Desktop: tabela */}
+                  <div className="sessions-desktop-table table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Data</th>
+                          <th>Horário</th>
+                          <th>Cliente</th>
+                          <th>Serviço</th>
+                          <th>Status</th>
                         </tr>
-                      ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                      </thead>
+                      <tbody>
+                        {sorted.map(s => (
+                          <tr key={s.id}>
+                            <td style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
+                              {new Date(s.date + 'T12:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                            </td>
+                            <td>
+                              {(s.time_start || s.time || '').slice(0, 5) || '—'}
+                              {s.time_end && ` — ${s.time_end.slice(0, 5)}`}
+                            </td>
+                            <td style={{ color: 'var(--text-primary)' }}>{getClientName(s.client_id)}</td>
+                            <td>{s.service}</td>
+                            <td>
+                              <span className={`badge badge-${(s.status || '').toLowerCase()}`}>
+                                {s.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile: cards */}
+                  <div className="sessions-mobile-cards">
+                    {sorted.map(s => (
+                      <div key={s.id} style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+                        padding: '0.75rem 0', borderBottom: '0.5px solid var(--border)',
+                      }}>
+                        <div>
+                          <div style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.2rem' }}>
+                            {getClientName(s.client_id)}
+                          </div>
+                          <div style={{ fontSize: '0.73rem', color: 'var(--text-muted)' }}>
+                            {new Date(s.date + 'T12:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })}
+                            {' · '}
+                            {(s.time_start || s.time || '').slice(0, 5) || '—'}
+                            {s.time_end && `–${s.time_end.slice(0, 5)}`}
+                          </div>
+                          {s.service && (
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                              {s.service}
+                            </div>
+                          )}
+                        </div>
+                        <span className={`badge badge-${(s.status || '').toLowerCase()}`} style={{ marginLeft: '0.75rem', flexShrink: 0 }}>
+                          {s.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
 
@@ -358,6 +394,8 @@ export default function Dashboard({ clients, packages, sessions, payments, video
                       fontFamily: 'var(--font-body)',
                       boxShadow: 'none',
                     }}
+                    labelStyle={{ color: tooltipLabelColor }}
+                    itemStyle={{ color: tooltipTextColor }}
                     cursor={{ fill: 'rgba(212,135,10,0.05)' }}
                   />
                   <Bar dataKey="receita" radius={[3, 3, 0, 0]}>

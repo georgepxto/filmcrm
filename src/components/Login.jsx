@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Clapperboard, Mail, Lock, User, Eye, EyeOff, ArrowRight, Loader } from 'lucide-react';
+import { Eye, EyeOff, Loader } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Login() {
@@ -60,52 +60,33 @@ export default function Login() {
 
   return (
     <div className="login-page">
-      {/* Ambient background effects */}
-      <div className="login-bg-glow login-bg-glow-1" />
-      <div className="login-bg-glow login-bg-glow-2" />
-      <div className="login-bg-glow login-bg-glow-3" />
-
       <div className="login-container">
-        {/* Left Panel - Branding */}
+        {/* Left Panel — Branding */}
         <div className="login-branding">
           <div className="login-branding-content">
             <div className="login-logo">
-              <Clapperboard size={36} />
               <h1>Film<span>CRM</span></h1>
             </div>
             <p className="login-tagline">Gestão Cinematográfica</p>
             <div className="login-features">
-              <div className="login-feature">
-                <div className="login-feature-dot" />
-                <span>Calendário inteligente de gravações</span>
-              </div>
-              <div className="login-feature">
-                <div className="login-feature-dot" />
-                <span>Controle completo de clientes e pacotes</span>
-              </div>
-              <div className="login-feature">
-                <div className="login-feature-dot" />
-                <span>Pipeline de pós-produção Kanban</span>
-              </div>
-              <div className="login-feature">
-                <div className="login-feature-dot" />
-                <span>Gestão financeira com histórico</span>
-              </div>
+              <div className="login-feature">— Calendário inteligente de gravações</div>
+              <div className="login-feature">— Controle completo de clientes e pacotes</div>
+              <div className="login-feature">— Pipeline de pós-produção Kanban</div>
+              <div className="login-feature">— Gestão financeira com histórico</div>
             </div>
             <div className="login-branding-footer">
-              <p>Seus dados seguros na nuvem</p>
-              <p>Acesse de qualquer dispositivo</p>
+              <p>Seus dados na nuvem, acessíveis de qualquer dispositivo.</p>
             </div>
           </div>
         </div>
 
-        {/* Right Panel - Form */}
+        {/* Right Panel — Form */}
         <div className="login-form-panel">
           <form className="login-form" onSubmit={handleSubmit}>
             <h2>
-              {mode === 'login' && 'Bem-vindo de volta'}
-              {mode === 'register' && 'Crie sua conta'}
-              {mode === 'reset' && 'Redefinir senha'}
+              {mode === 'login' && <>Bem-vindo <em>de volta</em></>}
+              {mode === 'register' && 'Crie sua conta.'}
+              {mode === 'reset' && 'Redefinir senha.'}
             </h2>
             <p className="login-subtitle">
               {mode === 'login' && 'Acesse seu painel de gestão'}
@@ -114,23 +95,16 @@ export default function Login() {
             </p>
 
             {error && (
-              <div className="login-alert login-alert-error">
-                {error}
-              </div>
+              <div className="login-alert login-alert-error">{error}</div>
             )}
 
             {success && (
-              <div className="login-alert login-alert-success">
-                {success}
-              </div>
+              <div className="login-alert login-alert-success">{success}</div>
             )}
 
             {mode === 'register' && (
               <div className="login-field">
-                <label htmlFor="login-name">
-                  <User size={14} />
-                  Nome completo
-                </label>
+                <label htmlFor="login-name">Nome completo</label>
                 <input
                   id="login-name"
                   type="text"
@@ -144,10 +118,7 @@ export default function Login() {
             )}
 
             <div className="login-field">
-              <label htmlFor="login-email">
-                <Mail size={14} />
-                Email
-              </label>
+              <label htmlFor="login-email">Email</label>
               <input
                 id="login-email"
                 type="email"
@@ -162,10 +133,7 @@ export default function Login() {
 
             {mode !== 'reset' && (
               <div className="login-field">
-                <label htmlFor="login-password">
-                  <Lock size={14} />
-                  Senha
-                </label>
+                <label htmlFor="login-password">Senha</label>
                 <div className="login-password-wrap">
                   <input
                     id="login-password"
@@ -184,7 +152,7 @@ export default function Login() {
                     onClick={() => setShowPassword(!showPassword)}
                     tabIndex={-1}
                   >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
               </div>
@@ -202,17 +170,16 @@ export default function Login() {
 
             <button
               type="submit"
-              className="btn btn-primary login-submit"
+              className="login-submit"
               disabled={loading}
             >
               {loading ? (
-                <Loader size={18} className="login-spinner" />
+                <Loader size={16} className="login-spinner" />
               ) : (
                 <>
                   {mode === 'login' && 'Entrar'}
                   {mode === 'register' && 'Criar conta'}
                   {mode === 'reset' && 'Enviar link'}
-                  <ArrowRight size={16} />
                 </>
               )}
             </button>

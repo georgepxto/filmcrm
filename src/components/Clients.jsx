@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useToast } from './Toast';
 import { useAuth } from '../contexts/AuthContext';
+import ConfirmModal from './ConfirmModal';
 
 const formatPhone = (value) => {
   const digits = value.replace(/\D/g, '').slice(0, 11);
@@ -109,6 +110,8 @@ export default function Clients({
   const [saving, setSaving] = useState(false);
   const [viewMode, setViewMode] = useState('list');
   const [searchQuery, setSearchQuery] = useState('');
+  const [deleteClientConfirm, setDeleteClientConfirm] = useState(null);
+  const [deleteRefConfirm, setDeleteRefConfirm] = useState(null);
 
   const emptyClient = { name: '', contact: '', email: '' };
   const emptyPackage = { client_id: '', name: '', total_videos: 4, edited: 0, delivered: 0, posted: 0, status: 'Ativo', value: '', paid: 0, start_date: new Date().toISOString().slice(0, 10), end_date: '', billing_cycle: 'Mensal' };
@@ -347,7 +350,7 @@ export default function Clients({
           <IconBtn onClick={() => openRefModal(c.id, ref)} hoverColor="var(--amber)" title="Editar">
             <Edit size={12} />
           </IconBtn>
-          <IconBtn onClick={() => handleDeleteRef(ref.id)} hoverColor="var(--danger)" title="Remover">
+          <IconBtn onClick={() => setDeleteRefConfirm(ref)} hoverColor="var(--danger)" title="Remover">
             <Trash2 size={12} />
           </IconBtn>
         </div>
@@ -447,7 +450,7 @@ export default function Clients({
               <IconBtn onClick={() => openClientModal(c)} hoverColor="var(--amber)" title="Editar">
                 <Edit size={14} />
               </IconBtn>
-              <IconBtn onClick={() => handleDeleteClient(c.id)} hoverColor="var(--danger)" title="Remover">
+              <IconBtn onClick={() => setDeleteClientConfirm(c)} hoverColor="var(--danger)" title="Remover">
                 <X size={14} />
               </IconBtn>
             </div>
@@ -535,7 +538,7 @@ export default function Clients({
             <IconBtn onClick={() => openClientModal(c)} hoverColor="var(--amber)" title="Editar cliente">
               <Edit size={15} />
             </IconBtn>
-            <IconBtn onClick={() => handleDeleteClient(c.id)} hoverColor="var(--danger)" title="Remover cliente">
+            <IconBtn onClick={() => setDeleteClientConfirm(c)} hoverColor="var(--danger)" title="Remover cliente">
               <X size={15} />
             </IconBtn>
           </div>
@@ -593,7 +596,7 @@ export default function Clients({
     <div className="fade-in">
 
       {/* ── Header ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem' }}>
+      <div className="clients-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '2rem' }}>
         <div>
           <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, letterSpacing: '-0.02em', fontSize: '2rem', marginBottom: '0.3rem', color: 'var(--text-primary)' }}>
             Clientes & Pacotes
@@ -602,7 +605,7 @@ export default function Clients({
             Gerencie seus clientes, pacotes de serviço e referências visuais.
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div className="clients-header-actions" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
 
           {/* Search */}
           <div style={{ position: 'relative' }}>
@@ -617,7 +620,7 @@ export default function Clients({
               onChange={e => setSearchQuery(e.target.value)}
               className="form-control"
               style={{
-                paddingLeft: '2rem', height: '32px', minWidth: '180px',
+                paddingLeft: '2rem', height: '32px', flex: 1, minWidth: 0,
                 background: 'var(--bg-elevated)', border: '0.5px solid var(--border)',
                 fontSize: '0.82rem',
               }}
@@ -882,6 +885,30 @@ export default function Clients({
           </div>
         );
       })()}
+
+      {/* ── Delete client confirm ── */}
+      {deleteClientConfirm && (
+        <ConfirmModal
+          title="Excluir cliente?"
+          message={`"${deleteClientConfirm.name}" e todos os seus dados (pacotes, referências) serão removidos permanentemente.`}
+          confirmLabel="Excluir"
+          danger
+          onConfirm={async () => { await handleDeleteClient(deleteClientConfirm.id); setDeleteClientConfirm(null); }}
+          onCancel={() => setDeleteClientConfirm(null)}
+        />
+      )}
+
+      {/* ── Delete reference confirm ── */}
+      {deleteRefConfirm && (
+        <ConfirmModal
+          title="Remover referência?"
+          message={`"${deleteRefConfirm.title}" será removida permanentemente.`}
+          confirmLabel="Remover"
+          danger
+          onConfirm={async () => { await handleDeleteRef(deleteRefConfirm.id); setDeleteRefConfirm(null); }}
+          onCancel={() => setDeleteRefConfirm(null)}
+        />
+      )}
 
       {/* ── Reference Modal ── */}
       {showRefModal && (

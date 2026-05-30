@@ -13,7 +13,7 @@ const OutlineBtn = ({ onClick, children, style = {} }) => (
     onClick={onClick}
     style={{
       background: 'transparent', border: '1px solid var(--amber)', color: 'var(--amber)',
-      borderRadius: 6, padding: '0.32rem 0.8rem', fontSize: '0.78rem', fontWeight: 600,
+      borderRadius: 6, padding: '0.5rem 1.15rem', fontSize: '0.85rem', fontWeight: 600,
       cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
       transition: 'background 0.18s', fontFamily: 'var(--font-body)', ...style,
     }}

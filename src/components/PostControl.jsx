@@ -6,6 +6,23 @@ import {
 } from 'lucide-react';
 import { useToast } from './Toast';
 
+const OutlineBtn = ({ onClick, children }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    style={{
+      background: 'transparent', border: '1px solid var(--amber)', color: 'var(--amber)',
+      borderRadius: 6, padding: '0.5rem 1.15rem', fontSize: '0.85rem', fontWeight: 600,
+      cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+      transition: 'background 0.18s', fontFamily: 'var(--font-body)',
+    }}
+    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(212,135,10,0.08)'; }}
+    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+  >
+    {children}
+  </button>
+);
+
 const STAGE_ORDER = ['edited', 'delivered', 'posted'];
 
 const getStatus = (v) => {
@@ -188,9 +205,9 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
     <div className="fade-in">
       <div className="page-header" style={{ marginBottom: '0.5rem' }}>
         <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, letterSpacing: '-0.02em' }}>Pipeline de Produção</h2>
-        <button className="btn btn-primary" onClick={() => openModal()}>
-          <Plus size={16} /> Novo Vídeo
-        </button>
+        <OutlineBtn onClick={() => openModal()}>
+          + Novo Vídeo
+        </OutlineBtn>
       </div>
 
       <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem', fontStyle: 'italic' }}>

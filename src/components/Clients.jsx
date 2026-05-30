@@ -49,8 +49,8 @@ const OutlineBtn = ({ onClick, children, size = 'sm', style = {} }) => (
       border: '1px solid var(--amber)',
       color: 'var(--amber)',
       borderRadius: 6,
-      padding: size === 'sm' ? '0.28rem 0.65rem' : '0.45rem 0.9rem',
-      fontSize: size === 'sm' ? '0.75rem' : '0.82rem',
+      padding: '0.5rem 1.15rem',
+      fontSize: '0.85rem',
       fontWeight: 600,
       cursor: 'pointer',
       display: 'inline-flex',
@@ -639,9 +639,9 @@ export default function Clients({
             ))}
           </div>
 
-          <button className="btn btn-primary" onClick={() => openClientModal()}>
-            <Plus size={15} /> Novo Cliente
-          </button>
+          <OutlineBtn onClick={() => openClientModal()}>
+            + Novo Cliente
+          </OutlineBtn>
         </div>
       </div>
 

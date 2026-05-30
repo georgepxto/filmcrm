@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useEffect } from 'react';
+﻿import { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Film, Plus, X, Calendar, CheckSquare, Square, Search,
   Trash2, Edit3, MessageCircle, Clock, ClipboardList, User, CheckCircle, Activity,
@@ -23,6 +23,25 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
   const [editVideoData, setEditVideoData] = useState(null);
   const [saving, setSaving] = useState(false);
   const [hoveredRow, setHoveredRow] = useState(null);
+  const [history, setHistory] = useState([]);
+
+  const getStatusColor = (label) => {
+    if (label === 'Postado') return 'var(--success)';
+    if (label === 'Entregue') return 'var(--info)';
+    if (label === 'Editado') return 'var(--warning)';
+    return 'var(--danger)';
+  };
+
+  const pushHistory = (videoId, fromLabel, toLabel) => {
+    const v = videos.find(x => x.id === videoId);
+    if (!v) return;
+    const entry = { key: Date.now(), title: v.title, client: clients.find(c => c.id === v.client_id)?.name || '—', from: fromLabel, to: toLabel, timestamp: Date.now() };
+    setHistory(prev => {
+      const next = [entry, ...prev.slice(0, 9)];
+      updatePipelineSettings({ history: next });
+      return next;
+    });
+  };
 
   const [localNotes, setLocalNotes] = useState('');
   useEffect(() => {
@@ -30,6 +49,17 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
       setLocalNotes(pipelineSettings.notes);
     }
   }, [pipelineSettings?.notes]);
+
+  const HISTORY_TTL = 24 * 60 * 60 * 1000;
+  const historyInitRef = useRef(false);
+
+  useEffect(() => {
+    if (pipelineSettings && !historyInitRef.current) {
+      historyInitRef.current = true;
+      const stored = pipelineSettings.history || [];
+      setHistory(stored.filter(h => Date.now() - h.timestamp < HISTORY_TTL));
+    }
+  }, [pipelineSettings]);
 
   const saveNotes = () => {
     if (pipelineSettings && localNotes !== pipelineSettings.notes) {
@@ -77,18 +107,22 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
   const toggleDone = async (videoId) => {
     const v = videos.find(x => x.id === videoId);
     if (!v) return;
+    const prevLabel = getStatus(v).label;
     if (v.posted) {
       await updateVideo(videoId, { edited: false, delivered: false, posted: false });
       toast.success('↩ Vídeo reaberto');
+      pushHistory(videoId, prevLabel, 'Não iniciado');
     } else {
       await updateVideo(videoId, { edited: true, delivered: true, posted: true });
       toast.success('✓ Vídeo concluído');
+      pushHistory(videoId, prevLabel, 'Postado');
     }
   };
 
   const cycleStatus = async (videoId) => {
     const v = videos.find(x => x.id === videoId);
     if (!v) return;
+    const prevLabel = getStatus(v).label;
     let upd;
     if (!v.edited) upd = { edited: true, delivered: false, posted: false };
     else if (!v.delivered) upd = { edited: true, delivered: true, posted: false };
@@ -98,6 +132,7 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
     if (result) {
       const status = getStatus({ ...v, ...upd });
       toast.success(`→ ${status.label}`);
+      pushHistory(videoId, prevLabel, status.label);
     }
   };
 
@@ -446,6 +481,36 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
             />
             <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '0.5rem', textAlign: 'right' }}>Salva automaticamente ao sair</p>
           </div>
+
+          {/* Widget 4: Histórico da Sessão */}
+          {history.length > 0 && (
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                  <Clock size={16} color="var(--amber)" /> Histórico da Sessão
+                </h4>
+                <button onClick={() => setHistory([])} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.7rem' }}>
+                  Limpar
+                </button>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {history.map((h, i) => (
+                  <div key={h.key} style={{ paddingBottom: '0.5rem', borderBottom: i < history.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 500, color: 'var(--text-primary)', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {h.title}
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.15rem', fontSize: '0.72rem', flexWrap: 'wrap' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>{h.client}</span>
+                      <span style={{ color: 'var(--text-muted)' }}>·</span>
+                      <span style={{ color: 'var(--text-muted)', textDecoration: 'line-through' }}>{h.from}</span>
+                      <span style={{ color: 'var(--text-muted)' }}>→</span>
+                      <span style={{ color: getStatusColor(h.to), fontWeight: 600 }}>{h.to}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
         </div>
       </div>

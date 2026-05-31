@@ -6,21 +6,38 @@ const AuthContext = createContext({});
 export const useAuth = () => useContext(AuthContext);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const [user, setUser]     = useState(null);
   const [loading, setLoading] = useState(true);
+  const [role, setRole]     = useState('user');
+
+  const fetchRole = async (uid) => {
+    if (!uid) { setRole('user'); return; }
+    try {
+      const { data } = await supabase
+        .from('user_profiles')
+        .select('role')
+        .eq('user_id', uid)
+        .single();
+      setRole(data?.role || 'user');
+    } catch {
+      setRole('user');
+    }
+  };
 
   useEffect(() => {
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
+      const u = session?.user ?? null;
+      setUser(u);
+      setLoading(false);   // libera loading imediatamente, igual ao original
+      fetchRole(u?.id);    // busca role em paralelo, sem bloquear
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
-        setUser(session?.user ?? null);
+        const u = session?.user ?? null;
+        setUser(u);
         setLoading(false);
+        fetchRole(u?.id);
       }
     );
 
@@ -28,10 +45,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const signIn = async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     return { data, error };
   };
 
@@ -39,9 +53,7 @@ export function AuthProvider({ children }) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        data: { full_name: name },
-      },
+      options: { data: { full_name: name } },
     });
     return { data, error };
   };
@@ -62,18 +74,12 @@ export function AuthProvider({ children }) {
     return { data, error };
   };
 
-  const value = {
-    user,
-    loading,
-    signIn,
-    signUp,
-    signOut,
-    resetPassword,
-    updateProfile,
-  };
-
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{
+      user, loading, role,
+      isAdmin: role === 'admin',
+      signIn, signUp, signOut, resetPassword, updateProfile,
+    }}>
       {children}
     </AuthContext.Provider>
   );

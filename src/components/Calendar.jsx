@@ -87,7 +87,7 @@ export default function Calendar({ clients, sessions, addSession, updateSession,
   const [savingClient, setSavingClient] = useState(false);
   const [deleteSessionConfirm, setDeleteSessionConfirm] = useState(null);
 
-  const emptyForm = { client_id: '', title: '', date: '', time_start: '09:00', time_end: '10:00', service: SERVICE_TYPES[0], status: 'Pendente', is_all_day: false, date_end: '' };
+  const emptyForm = { client_id: '', title: '', date: '', time_start: '09:00', time_end: '10:00', service: '', status: 'Pendente', is_all_day: false, date_end: '' };
   const [form, setForm] = useState(emptyForm);
   const [clientSearch, setClientSearch] = useState('');
   const [clientDropdownOpen, setClientDropdownOpen] = useState(false);
@@ -685,10 +685,21 @@ export default function Calendar({ clients, sessions, addSession, updateSession,
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label>Tipo de serviço</label>
-                    <select className="form-control" value={form.service} onChange={e => setForm({ ...form, service: e.target.value })}>
-                      {SERVICE_TYPES.map(s => <option key={s}>{s}</option>)}
-                    </select>
+                    <label style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem' }}>
+                      Tipo de serviço
+                      <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 400 }}>opcional</span>
+                    </label>
+                    <input
+                      list="service-suggestions"
+                      className="form-control"
+                      value={form.service}
+                      onChange={e => setForm({ ...form, service: e.target.value })}
+                      placeholder="Ex: Gravação de Reels, reunião, ensaio..."
+                      autoComplete="off"
+                    />
+                    <datalist id="service-suggestions">
+                      {SERVICE_TYPES.map(s => <option key={s} value={s} />)}
+                    </datalist>
                   </div>
                   <div className="form-group">
                     <label>Status</label>

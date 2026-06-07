@@ -212,7 +212,7 @@ export function useGoogleCalendar() {
         const desc = (ev.description || '').toLowerCase();
         const summary = ev.summary || '';
         if (desc.includes('filmmakercrm')) return false;
-        if (summary.startsWith('📹')) return false;
+        if (summary.startsWith('📹') || summary.startsWith('📅')) return false;
         return true;
       });
       setEvents(items);

@@ -1852,16 +1852,15 @@ input:checked + .toggle-slider:before {
   align-items: start;
 }
 .post-desktop-table { display: block; overflow-x: auto; }
-.post-desktop-table > div { min-width: 720px; }
 .post-mobile-list { display: none; }
 
-/* Tablet: sidebar de stats empilha abaixo da tabela, tabela permanece visível */
-@media (max-width: 1024px) {
+/* Sidebar de stats empilha abaixo sempre que a tabela não tiver espaço suficiente */
+@media (max-width: 1400px) {
   .post-layout { grid-template-columns: 1fr; }
 }
 
 /* Mobile: troca tabela por cards */
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .post-desktop-table { display: none; }
   .post-mobile-list { display: flex; flex-direction: column; gap: 0.5rem; }
 }

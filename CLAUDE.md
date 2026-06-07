@@ -315,9 +315,18 @@ Persistido em `localStorage` com chave `takeone-theme`.
 
 | Breakpoint | Comportamento |
 |------------|--------------|
-| `900px` | Grids summary passam para 2 colunas |
-| `768px` | Sidebar colapsa (hamburger menu), layouts empilham, padding reduzido |
-| `480px` | Otimizações adicionais, modais ajustados |
+| `1400px` | PostControl: sidebar de stats empilha abaixo da tabela |
+| `1024px` | Sidebar principal colapsa (hambúrguer), conteúdo 100% largura, padding 1.5rem, iOS font-size fix |
+| `900px` | Summary cards → 2 colunas |
+| `769–1024px` | Calendário: células intermediárias (70px), tablet range |
+| `768px` | Layouts empilham (dashboard 1 col, form-row 1 col), calendário compacto (52px) |
+| `640px` | Clientes, sessions, pacotes, postagens → visualização mobile (cards, stacks) |
+| `600px` | Login colapsa para coluna única |
+| `480px` | Modal footer empilha, page-header h2 menor |
+
+**Regra geral:** sidebar principal some em ≤ 1024px. Layouts de conteúdo (tabelas, grids) adaptam a partir de 768px. Cards mobile em 640px.
+
+**Botões:** `.btn` tem `white-space: nowrap` — ícone e label nunca quebram linha.
 
 ---
 
@@ -502,7 +511,7 @@ LS_EXPIRY_KEY = 'takeone_gcal_expiry'
 REFRESH_MARGIN_MS = 5 * 60 * 1000  // renovar 5 min antes de expirar
 ```
 
-**Filtros:** eventos com `"filmmakercrm"` na description ou título começando com `"📹"` são excluídos da exibição (evitar duplicação).
+**Filtros:** eventos com `"filmmakercrm"` na description ou título começando com `"📹"` ou `"📅"` são excluídos da exibição (evitar duplicação). `📅` é usado em eventos pessoais do CRM (sem cliente vinculado).
 
 ---
 
@@ -568,12 +577,14 @@ REFRESH_MARGIN_MS = 5 * 60 * 1000  // renovar 5 min antes de expirar
    - Seletor de cliente (dropdown com busca)
    - Data / Data-fim (para multi-dia)
    - Hora início/fim ou toggle All-Day
-   - Tipo de serviço (SERVICE_TYPES)
+   - Tipo de serviço — campo de texto livre com `<datalist>` de sugestões (opcional)
    - Status: Pendente / Confirmado / Concluído
    - Toggle Google Calendar sync
 4. **Modal de criação rápida de cliente** (nome, contato, email)
 
-**Tipos de serviço** (de `data.js`):
+**Tipo de serviço:** campo `<input>` livre com `<datalist id="service-suggestions">`. As sugestões vêm de `SERVICE_TYPES` em `data.js` mas o usuário pode digitar qualquer coisa ou deixar vazio. Valor padrão: `''` (vazio).
+
+**Sugestões padrão** (de `data.js`):
 ```
 Gravação de Reels · Gravação Institucional · Gravação de Curso
 Ensaio Fotográfico · Making Of · Gravação de Podcast · Cobertura de Evento
@@ -700,8 +711,8 @@ posted > delivered > edited > "não iniciado"
    - Progresso (botão cíclico de status)
    - Data planejada
    - Ações (editar, excluir)
-3. **Cards mobile** — versão empilhada
-4. **Sidebar direita (300px):**
+3. **Cards mobile** — versão empilhada (ativa em ≤ 768px)
+4. **Sidebar direita (300px):** visível ao lado apenas em ≥ 1400px; abaixo disso empilha sob a tabela
    - **Widget de stats:** Total · Concluídos · Atrasados · Próximos prazos (4 itens)
    - **Notas:** textarea com salvamento manual
    - **Histórico de atividade:** últimas 10 mudanças de status com timestamp
@@ -1128,7 +1139,8 @@ Deno/TypeScript rodando no Supabase Edge. Chamada via `supabase.functions.invoke
 - **Tema:** o `ThemeProvider` precisa estar acima de tudo para que `useTheme()` funcione em qualquer componente.
 - **Avatar:** armazenado no bucket `avatars` do Supabase Storage (público).
 - **PDF:** recibos e propostas gerados client-side com `jsPDF` — sem servidor envolvido.
-- **Google Calendar:** eventos do CRM criados com prefixo `📹` no título para não serem reimportados como eventos externos.
+- **Google Calendar:** eventos do CRM criados com prefixo `📹` (com cliente) ou `📅` (pessoal/sem cliente) no título para não serem reimportados como eventos externos. O filtro em `useGoogleCalendar.js` exclui ambos os prefixos.
+- **Google Calendar localhost:** para funcionar em desenvolvimento, adicionar `http://localhost` e `http://localhost:5173` nas **Authorized JavaScript origins** do OAuth Client no Google Cloud Console (não nos redirect URIs — o fluxo usa `postmessage`).
 - **Painel admin:** rota `/admin/*` protegida por `AdminGate` (verifica `isAdmin` do `AuthContext`). Usar `adminActions` para toda ação sensível — nunca chamar `service_role` direto do frontend.
 - **Promover admin:** executar `UPDATE public.user_profiles SET role = 'admin' WHERE user_id = '<uuid>'` no SQL Editor do Supabase.
 - **Novo usuário:** trigger `on_auth_user_created` cria automaticamente um `user_profiles` com role `user` para cada signup.

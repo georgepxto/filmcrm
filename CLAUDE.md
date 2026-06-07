@@ -107,8 +107,12 @@ filmmakercrm/
 │   │   │   └── index.ts            # Edge Function: OAuth + token management AES-256
 │   │   └── admin/
 │   │       └── index.ts            # Edge Function: ações administrativas sensíveis
-│   └── migration_admin.sql         # Migration SQL para tabelas do painel admin
+│   ├── migration_admin.sql         # Migration SQL para tabelas do painel admin
+│   └── migration_business_profile.sql  # Migration: dados empresa → user_profiles + bucket MIME
+├── docs/
+│   └── plan-multi-usuario.md       # Plano detalhado para feature de multi-usuário (pendente)
 ├── public/
+├── vercel.json                     # Rewrites SPA + security headers (X-Frame-Options, etc.)
 ├── vite.config.js
 ├── package.json
 └── index.html
@@ -760,18 +764,21 @@ posted > delivered > edited > "não iniciado"
 ### `Settings.jsx`
 
 **Estado local:**
-- `name`, `avatarUrl` — dados de perfil
-- `currency: 'BRL' | 'USD' | 'EUR'` — moeda
-- `companyName`, `documentType`, `documentNumber`, `pixKey` — dados empresa
+- `name`, `avatarUrl` — dados de perfil (lidos de `user.user_metadata`)
+- `currency`, `companyName`, `documentType`, `documentNumber`, `pixKey` — dados empresa (lidos de `user_profiles` via `useEffect`)
 - `password`, `confirmPassword` — troca de senha
 - `theme` — tema (via `useTheme`)
 - `loadingProfile`, `loadingBusiness`, `uploadingAvatar`, `loadingPassword` — flags de loading
 
 **Seções renderizadas:**
-1. **Perfil:** upload de avatar (Supabase Storage `avatars`) + nome + salvar
-2. **Empresa:** nome da empresa, moeda, tipo de documento, número de documento (auto-formatado), chave PIX
+1. **Perfil:** upload de avatar + nome → salva apenas `full_name` e `avatar_url` em `user_metadata`
+2. **Empresa:** nome, moeda, documento, PIX → salva em `user_profiles` (não no JWT)
 3. **Aparência:** cards de tema (Dark / Light) com preview visual
 4. **Segurança:** formulário de troca de senha com validação
+
+**Separação de dados:**
+- `user_metadata` (JWT): `full_name`, `avatar_url` — dados de identidade, aparecem no token
+- `user_profiles` (tabela): `company_name`, `document_type`, `document_number`, `pix_key`, `currency` — dados sensíveis fora do JWT (LGPD)
 
 **Upload de avatar:**
 - MIME types permitidos: `image/jpeg`, `image/png`, `image/webp`, `image/gif`
@@ -1145,7 +1152,7 @@ Deno/TypeScript rodando no Supabase Edge. Chamada via `supabase.functions.invoke
 - **Otimismo:** `useSupabaseData` usa IDs temporários `tmp_*` e faz rollback em falha. `console.error` loga apenas `error.code` + `error.message`, nunca o objeto completo.
 - **Tema:** o `ThemeProvider` precisa estar acima de tudo para que `useTheme()` funcione em qualquer componente.
 - **Avatar:** armazenado no bucket `avatars` do Supabase Storage (público). Upload valida MIME type e tamanho (máx 5 MB) no frontend — configurar policy equivalente no bucket do Supabase.
-- **PDF:** recibos e propostas gerados client-side com `jsPDF` — sem servidor envolvido.
+- **PDF:** recibos e propostas gerados client-side com `jsPDF` — sem servidor envolvido. Dados do emitente (empresa, documento, PIX) lidos de `user_profiles` via estado `bizProfile` em `Payments.jsx` e `Clients.jsx`.
 - **Google Calendar:** eventos do CRM criados com prefixo `📹` (com cliente) ou `📅` (pessoal/sem cliente) no título para não serem reimportados como eventos externos. O filtro em `useGoogleCalendar.js` exclui ambos os prefixos.
 - **Google Calendar — formato de tempo:** o banco retorna `time` como `HH:MM:SS`. A função `buildEventTimes` normaliza para `HH:MM` antes de enviar à API. Nunca construir `dateTime` manualmente — usar `buildEventTimes`.
 - **Google Calendar — all-day:** eventos all-day usam `{ date: 'YYYY-MM-DD' }` (sem `dateTime`). `end.date` é exclusivo na API do Google — usa dia seguinte.
@@ -1158,3 +1165,8 @@ Deno/TypeScript rodando no Supabase Edge. Chamada via `supabase.functions.invoke
 - **Transição de página:** o wrapper `<div key={location.pathname} className="page-transition">` aplica fade por CSS. Nunca usar `transform` neste wrapper — quebra `position:fixed` de modais.
 - **Indicador da sidebar:** calculado em `useEffect` com `getBoundingClientRect()` sempre que `location.pathname` muda.
 - **Arquivos removidos:** `src/App.css`, `src/assets/TakeOne.png`, `src/assets/TakeOne.svg`, `src/hooks/useSubscription.js`, `public/favicon-clapper.svg`, `public/icons.svg`. Não recriar.
+- **`supabase/.temp/`** está no `.gitignore` — arquivos de cache da CLI não são commitados.
+- **Headers de segurança:** configurados em `vercel.json` — `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`. CSP **não** está ativo (incompatível com iframes dinâmicos do GAPI do Google).
+- **`delete_user` hard_delete:** impede deletar a si mesmo ou outro admin permanentemente. Requer verificação de role do alvo antes de executar.
+- **Migration pendente:** executar `supabase/migration_business_profile.sql` no SQL Editor do Supabase para: (1) adicionar colunas de empresa em `user_profiles`, (2) migrar dados do `user_metadata`, (3) aplicar restrição MIME no bucket `avatars`.
+- **bizProfile pattern:** `Payments.jsx` e `Clients.jsx` carregam dados empresariais do usuário via `useEffect` → `supabase.from('user_profiles')` em um estado local `bizProfile`. Necessário para geração de PDF com dados corretos.

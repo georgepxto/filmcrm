@@ -90,10 +90,15 @@ export default function Settings() {
     try {
       if (!event.target.files || event.target.files.length === 0) return;
       const file = event.target.files[0];
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+
+      const ALLOWED_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' };
+      if (!ALLOWED_TYPES[file.type]) { toast.error('Tipo de arquivo não permitido. Use JPG, PNG, WEBP ou GIF.'); return; }
+      if (file.size > 5 * 1024 * 1024) { toast.error('Imagem muito grande. Máximo 5 MB.'); return; }
+
+      const ext = ALLOWED_TYPES[file.type];
+      const fileName = `${user.id}-${crypto.randomUUID()}.${ext}`;
       setUploadingAvatar(true);
-      const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file);
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file, { contentType: file.type });
       if (uploadError) throw uploadError;
       const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
       setAvatarUrl(data.publicUrl);

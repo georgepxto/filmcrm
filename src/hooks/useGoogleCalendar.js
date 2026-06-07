@@ -49,19 +49,19 @@ export function useGoogleCalendar() {
     window.gapi.client.setToken({ access_token: token });
     setIsSignedIn(true);
 
-    // Store token and when it expires
-    localStorage.setItem(LS_TOKEN_KEY, token);
+    // Store token in sessionStorage (cleared on tab close, not accessible cross-tab)
+    sessionStorage.setItem(LS_TOKEN_KEY, token);
     if (expiresInSec) {
       const expiryMs = Date.now() + expiresInSec * 1000;
-      localStorage.setItem(LS_EXPIRY_KEY, String(expiryMs));
+      sessionStorage.setItem(LS_EXPIRY_KEY, String(expiryMs));
       scheduleRefresh(expiresInSec);
     }
   }, [scheduleRefresh]);
 
   const clearAuth = useCallback(() => {
     accessTokenRef.current = null;
-    localStorage.removeItem(LS_TOKEN_KEY);
-    localStorage.removeItem(LS_EXPIRY_KEY);
+    sessionStorage.removeItem(LS_TOKEN_KEY);
+    sessionStorage.removeItem(LS_EXPIRY_KEY);
     if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
     setIsSignedIn(false);
     setEvents([]);
@@ -133,8 +133,8 @@ export function useGoogleCalendar() {
     restoredRef.current = true;
 
     const attemptRestore = async () => {
-      const savedToken = localStorage.getItem(LS_TOKEN_KEY);
-      const savedExpiry = localStorage.getItem(LS_EXPIRY_KEY);
+      const savedToken = sessionStorage.getItem(LS_TOKEN_KEY);
+      const savedExpiry = sessionStorage.getItem(LS_EXPIRY_KEY);
       const timeLeft = savedExpiry ? Number(savedExpiry) - Date.now() : 0;
 
       // If token is still valid for more than 1 min, use it and schedule refresh

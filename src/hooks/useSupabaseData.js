@@ -54,7 +54,7 @@ export function useSupabaseData() {
     const id = tmpId();
     setClients(prev => [{ ...client, id, user_id: user.id, created_at: new Date().toISOString() }, ...prev]);
     const { data, error } = await supabase.from('clients').insert([{ ...client, user_id: user.id }]).select().single();
-    if (error) { console.error(error); setClients(prev => prev.filter(c => c.id !== id)); return null; }
+    if (error) { console.error(error?.code, error?.message); setClients(prev => prev.filter(c => c.id !== id)); return null; }
     setClients(prev => prev.map(c => c.id === id ? data : c));
     return data;
   };
@@ -62,7 +62,7 @@ export function useSupabaseData() {
   const updateClient = async (id, updates) => {
     setClients(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
     const { data, error } = await supabase.from('clients').update(updates).eq('id', id).eq('user_id', user.id).select().single();
-    if (error) { console.error(error); fetchAll(); return null; }
+    if (error) { console.error(error?.code, error?.message); fetchAll(); return null; }
     setClients(prev => prev.map(c => c.id === id ? data : c));
     return data;
   };
@@ -71,7 +71,7 @@ export function useSupabaseData() {
     setClients(prev => prev.filter(c => c.id !== id));
     setPackages(prev => prev.filter(p => p.client_id !== id));
     const { error } = await supabase.from('clients').delete().eq('id', id).eq('user_id', user.id);
-    if (error) { console.error(error); fetchAll(); return false; }
+    if (error) { console.error(error?.code, error?.message); fetchAll(); return false; }
     return true;
   };
 
@@ -80,7 +80,7 @@ export function useSupabaseData() {
     const id = tmpId();
     setPackages(prev => [{ ...pkg, id, user_id: user.id, created_at: new Date().toISOString() }, ...prev]);
     const { data, error } = await supabase.from('packages').insert([{ ...pkg, user_id: user.id }]).select().single();
-    if (error) { console.error(error); setPackages(prev => prev.filter(p => p.id !== id)); return null; }
+    if (error) { console.error(error?.code, error?.message); setPackages(prev => prev.filter(p => p.id !== id)); return null; }
     setPackages(prev => prev.map(p => p.id === id ? data : p));
     return data;
   };
@@ -88,7 +88,7 @@ export function useSupabaseData() {
   const updatePackage = async (id, updates) => {
     setPackages(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
     const { data, error } = await supabase.from('packages').update(updates).eq('id', id).eq('user_id', user.id).select().single();
-    if (error) { console.error(error); fetchAll(); return null; }
+    if (error) { console.error(error?.code, error?.message); fetchAll(); return null; }
     setPackages(prev => prev.map(p => p.id === id ? data : p));
     return data;
   };
@@ -96,7 +96,7 @@ export function useSupabaseData() {
   const deletePackage = async (id) => {
     setPackages(prev => prev.filter(p => p.id !== id));
     const { error } = await supabase.from('packages').delete().eq('id', id).eq('user_id', user.id);
-    if (error) { console.error(error); fetchAll(); return false; }
+    if (error) { console.error(error?.code, error?.message); fetchAll(); return false; }
     return true;
   };
 
@@ -105,7 +105,7 @@ export function useSupabaseData() {
     const id = tmpId();
     setSessions(prev => [...prev, { ...session, id, user_id: user.id }].sort((a, b) => a.date.localeCompare(b.date)));
     const { data, error } = await supabase.from('sessions').insert([{ ...session, user_id: user.id }]).select().single();
-    if (error) { console.error(error); setSessions(prev => prev.filter(s => s.id !== id)); return null; }
+    if (error) { console.error(error?.code, error?.message); setSessions(prev => prev.filter(s => s.id !== id)); return null; }
     setSessions(prev => prev.map(s => s.id === id ? data : s));
     return data;
   };
@@ -113,7 +113,7 @@ export function useSupabaseData() {
   const updateSession = async (id, updates) => {
     setSessions(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
     const { data, error } = await supabase.from('sessions').update(updates).eq('id', id).eq('user_id', user.id).select().single();
-    if (error) { console.error(error); fetchAll(); return null; }
+    if (error) { console.error(error?.code, error?.message); fetchAll(); return null; }
     setSessions(prev => prev.map(s => s.id === id ? data : s));
     return data;
   };
@@ -121,7 +121,7 @@ export function useSupabaseData() {
   const deleteSession = async (id) => {
     setSessions(prev => prev.filter(s => s.id !== id));
     const { error } = await supabase.from('sessions').delete().eq('id', id).eq('user_id', user.id);
-    if (error) { console.error(error); fetchAll(); return false; }
+    if (error) { console.error(error?.code, error?.message); fetchAll(); return false; }
     return true;
   };
 
@@ -147,7 +147,7 @@ export function useSupabaseData() {
         : Promise.resolve({ data: null, error: null }),
     ]);
 
-    if (error) { console.error(error); setVideos(prev => prev.filter(v => v.id !== id)); fetchAll(); return null; }
+    if (error) { console.error(error?.code, error?.message); setVideos(prev => prev.filter(v => v.id !== id)); fetchAll(); return null; }
     setVideos(prev => prev.map(v => v.id === id ? data : v));
     if (pkgRes.data) setPackages(prev => prev.map(p => p.id === video.package_id ? pkgRes.data : p));
     return data;
@@ -179,8 +179,7 @@ export function useSupabaseData() {
     ]);
 
     if (error) {
-      console.error(error);
-      if (!pkgRes.data) alert('Atenção: A coluna "edited" ainda não foi criada no banco de dados! Rode o SQL no Supabase para os Pacotes atualizarem.');
+      console.error(error?.code, error?.message);
       fetchAll();
       return null;
     }
@@ -210,7 +209,7 @@ export function useSupabaseData() {
         : Promise.resolve({ data: null, error: null }),
     ]);
 
-    if (error) { console.error(error); fetchAll(); return false; }
+    if (error) { console.error(error?.code, error?.message); fetchAll(); return false; }
     if (pkgRes.data) setPackages(prev => prev.map(p => p.id === video.package_id ? pkgRes.data : p));
     return true;
   };
@@ -231,7 +230,7 @@ export function useSupabaseData() {
         : Promise.resolve({ data: null, error: null }),
     ]);
 
-    if (error) { console.error(error); setPayments(prev => prev.filter(p => p.id !== id)); fetchAll(); return null; }
+    if (error) { console.error(error?.code, error?.message); setPayments(prev => prev.filter(p => p.id !== id)); fetchAll(); return null; }
     setPayments(prev => prev.map(p => p.id === id ? data : p));
     if (pkgRes.data) setPackages(prev => prev.map(p => p.id === payment.package_id ? pkgRes.data : p));
     return data;
@@ -252,7 +251,7 @@ export function useSupabaseData() {
         : Promise.resolve({ data: null, error: null }),
     ]);
 
-    if (error) { console.error(error); fetchAll(); return false; }
+    if (error) { console.error(error?.code, error?.message); fetchAll(); return false; }
     if (pkgRes.data) setPackages(prev => prev.map(p => p.id === payment.package_id ? pkgRes.data : p));
     return true;
   };
@@ -262,7 +261,7 @@ export function useSupabaseData() {
     const id = tmpId();
     setReferences(prev => [{ ...reference, id, user_id: user.id, created_at: new Date().toISOString() }, ...prev]);
     const { data, error } = await supabase.from('references').insert([{ ...reference, user_id: user.id }]).select().single();
-    if (error) { console.error(error); setReferences(prev => prev.filter(r => r.id !== id)); return null; }
+    if (error) { console.error(error?.code, error?.message); setReferences(prev => prev.filter(r => r.id !== id)); return null; }
     setReferences(prev => prev.map(r => r.id === id ? data : r));
     return data;
   };
@@ -270,7 +269,7 @@ export function useSupabaseData() {
   const updateReference = async (id, updates) => {
     setReferences(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
     const { data, error } = await supabase.from('references').update(updates).eq('id', id).eq('user_id', user.id).select().single();
-    if (error) { console.error(error); fetchAll(); return null; }
+    if (error) { console.error(error?.code, error?.message); fetchAll(); return null; }
     setReferences(prev => prev.map(r => r.id === id ? data : r));
     return data;
   };
@@ -278,7 +277,7 @@ export function useSupabaseData() {
   const deleteReference = async (id) => {
     setReferences(prev => prev.filter(r => r.id !== id));
     const { error } = await supabase.from('references').delete().eq('id', id).eq('user_id', user.id);
-    if (error) { console.error(error); fetchAll(); return false; }
+    if (error) { console.error(error?.code, error?.message); fetchAll(); return false; }
     return true;
   };
 
@@ -287,7 +286,7 @@ export function useSupabaseData() {
     const newSettings = { ...pipelineSettings, ...updates, user_id: user.id };
     setPipelineSettings(newSettings);
     const { data, error } = await supabase.from('pipeline_settings').upsert([newSettings]).select().single();
-    if (error) { console.error(error); return null; }
+    if (error) { console.error(error?.code, error?.message); return null; }
     setPipelineSettings(data);
     return data;
   };

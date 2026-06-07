@@ -25,19 +25,19 @@ export function AuthProvider({ children }) {
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       const u = session?.user ?? null;
       setUser(u);
-      setLoading(false);   // libera loading imediatamente, igual ao original
-      fetchRole(u?.id);    // busca role em paralelo, sem bloquear
+      await fetchRole(u?.id);  // aguarda role antes de liberar loading
+      setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      async (_event, session) => {
         const u = session?.user ?? null;
         setUser(u);
+        await fetchRole(u?.id);
         setLoading(false);
-        fetchRole(u?.id);
       }
     );
 

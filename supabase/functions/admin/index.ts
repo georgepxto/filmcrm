@@ -3,7 +3,7 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': 'https://filmmakercrm.vercel.app',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
@@ -31,8 +31,9 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await userClient.auth.getUser()
     if (userError || !user) return json({ error: 'Unauthorized' }, 401)
 
-    // Verifica se é admin
-    const { data: profile } = await userClient
+    // Verifica se é admin usando service role (imune a bugs de RLS)
+    const adminClient = createClient(supabaseUrl, serviceRoleKey)
+    const { data: profile } = await adminClient
       .from('user_profiles')
       .select('role')
       .eq('user_id', user.id)
@@ -40,7 +41,6 @@ serve(async (req) => {
     if (profile?.role !== 'admin') return json({ error: 'Forbidden — admin only' }, 403)
 
     // Rate limiting simples
-    const adminClient = createClient(supabaseUrl, serviceRoleKey)
     const oneHourAgo  = new Date(Date.now() - 3_600_000).toISOString()
     const { count }   = await adminClient
       .from('admin_actions')
@@ -130,13 +130,16 @@ serve(async (req) => {
 
       // ── reset_user_password ───────────────────────────────────
       case 'reset_user_password': {
-        const { email, user_id } = payload
+        const { user_id } = payload
+        // Busca o email server-side para evitar que payload manipulado envie recovery para outro endereço
+        const { data: { user: targetUser }, error: getUserError } = await adminClient.auth.admin.getUserById(user_id)
+        if (getUserError || !targetUser?.email) throw new Error('User not found')
         const { error: resetError } = await adminClient.auth.admin.generateLink({
           type:  'recovery',
-          email,
+          email: targetUser.email,
         })
         if (resetError) throw resetError
-        await log(user_id || null, 'password_reset_sent', { email })
+        await log(user_id, 'password_reset_sent', {})
         result = { success: true }
         break
       }
@@ -153,13 +156,17 @@ serve(async (req) => {
       // ── update_subscription ───────────────────────────────────
       case 'update_subscription': {
         const { subscription_id, updates } = payload
+        const ALLOWED_SUB_FIELDS = ['status', 'billing_cycle', 'current_period_start', 'current_period_end', 'trial_ends_at', 'canceled_at', 'cancel_reason']
+        const safeUpdates = Object.fromEntries(
+          Object.entries(updates).filter(([k]) => ALLOWED_SUB_FIELDS.includes(k))
+        )
         const { data: sub } = await adminClient
           .from('subscriptions')
-          .update({ ...updates, updated_at: new Date().toISOString() })
+          .update({ ...safeUpdates, updated_at: new Date().toISOString() })
           .eq('id', subscription_id)
           .select('user_id')
           .single()
-        await log(sub?.user_id || null, 'subscription_updated', { subscription_id, updates })
+        await log(sub?.user_id || null, 'subscription_updated', { subscription_id, updates: safeUpdates })
         result = { success: true }
         break
       }
@@ -219,7 +226,7 @@ serve(async (req) => {
 
   } catch (err) {
     console.error('[admin-fn]', err)
-    return json({ error: err?.message || 'Internal server error' }, 500)
+    return json({ error: 'Internal server error' }, 500)
   }
 })
 

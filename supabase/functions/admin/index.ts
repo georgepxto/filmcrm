@@ -116,7 +116,11 @@ serve(async (req) => {
       // ── delete_user ───────────────────────────────────────────
       case 'delete_user': {
         const { user_id, hard_delete } = payload
+        if (user_id === user.id) return json({ error: 'Cannot delete your own account' }, 400)
+        const { data: targetProfile } = await adminClient
+          .from('user_profiles').select('role').eq('user_id', user_id).single()
         if (hard_delete) {
+          if (targetProfile?.role === 'admin') return json({ error: 'Cannot hard-delete another admin' }, 403)
           const { error: delError } = await adminClient.auth.admin.deleteUser(user_id)
           if (delError) throw delError
           await log(user_id, 'user_hard_deleted', {})

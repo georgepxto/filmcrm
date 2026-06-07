@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Users, Plus, X, Package, AlertTriangle, ChevronLeft,
   Edit, MessageCircle, Bookmark, Trash2, LayoutGrid, List, Search,
@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useToast } from './Toast';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 import ConfirmModal from './ConfirmModal';
 
 const formatPhone = (value) => {
@@ -97,7 +98,17 @@ export default function Clients({
   addReference, updateReference, deleteReference,
 }) {
   const { user } = useAuth();
-  const cSym = user?.user_metadata?.currency === 'USD' ? '$' : user?.user_metadata?.currency === 'EUR' ? '€' : 'R$';
+  const [bizProfile, setBizProfile] = useState({ currency: 'BRL', company_name: '', document_type: 'CPF/CNPJ', document_number: '', pix_key: '' });
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.from('user_profiles')
+      .select('company_name, document_type, document_number, pix_key, currency')
+      .eq('user_id', user.id).single()
+      .then(({ data }) => { if (data) setBizProfile(prev => ({ ...prev, ...data })); });
+  }, [user]);
+
+  const cSym = bizProfile.currency === 'USD' ? '$' : bizProfile.currency === 'EUR' ? '€' : 'R$';
   const toast = useToast();
   const [showClientModal, setShowClientModal] = useState(false);
   const [showPackageModal, setShowPackageModal] = useState(false);
@@ -397,10 +408,10 @@ export default function Clients({
     setGeneratingPDF(true);
     import('jspdf').then(({ jsPDF }) => {
       const doc = new jsPDF();
-      const compName = user?.user_metadata?.company_name || user?.user_metadata?.full_name || 'Produtora Audiovisual';
-      const docType = user?.user_metadata?.document_type || 'CPF/CNPJ';
-      const docNum = user?.user_metadata?.document_number || '';
-      const pixKey = user?.user_metadata?.pix_key || '';
+      const compName = bizProfile.company_name || user?.user_metadata?.full_name || 'Produtora Audiovisual';
+      const docType = bizProfile.document_type || 'CPF/CNPJ';
+      const docNum = bizProfile.document_number || '';
+      const pixKey = bizProfile.pix_key || '';
       const proposalId = `PROP-${Date.now().toString().slice(-6)}`;
       const today = new Date();
       const todayStr = today.toLocaleDateString('pt-BR');

@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DollarSign, X, Undo2, Download } from 'lucide-react';
 import { useToast } from './Toast';
 import ConfirmModal from './ConfirmModal';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 
 /* ── Micro-components ── */
 const OutlineBtn = ({ onClick, children, style = {}, disabled = false }) => (
@@ -52,7 +53,17 @@ const fieldStyle = {
 
 export default function Payments({ clients, packages, payments, addPayment, deletePayment }) {
   const { user } = useAuth();
-  const cSym = user?.user_metadata?.currency === 'USD' ? '$' : user?.user_metadata?.currency === 'EUR' ? '€' : 'R$';
+  const [bizProfile, setBizProfile] = useState({ currency: 'BRL', company_name: '', document_type: 'CPF/CNPJ', document_number: '', pix_key: '' });
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.from('user_profiles')
+      .select('company_name, document_type, document_number, pix_key, currency')
+      .eq('user_id', user.id).single()
+      .then(({ data }) => { if (data) setBizProfile(prev => ({ ...prev, ...data })); });
+  }, [user]);
+
+  const cSym = bizProfile.currency === 'USD' ? '$' : bizProfile.currency === 'EUR' ? '€' : 'R$';
   const toast = useToast();
   const [filterClient, setFilterClient] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -159,10 +170,10 @@ export default function Payments({ clients, packages, payments, addPayment, dele
     const clientName = clients.find(c => c.id === pkg.client_id)?.name || 'Cliente Desconhecido';
     import('jspdf').then(({ jsPDF }) => {
       const doc = new jsPDF();
-      const compName = user?.user_metadata?.company_name || 'Produtora Audiovisual';
-      const docType = user?.user_metadata?.document_type || 'CPF/CNPJ';
-      const docNum = user?.user_metadata?.document_number || 'Não informado';
-      const pix = user?.user_metadata?.pix_key || '';
+      const compName = bizProfile.company_name || user?.user_metadata?.full_name || 'Produtora Audiovisual';
+      const docType = bizProfile.document_type || 'CPF/CNPJ';
+      const docNum = bizProfile.document_number || 'Não informado';
+      const pix = bizProfile.pix_key || '';
       const receiptDate = new Date(pay.date + 'T12:00').toLocaleDateString('pt-BR');
       const receiptId = `REC-${Date.now().toString().slice(-6)}`;
       const primaryColor = [20, 20, 20];

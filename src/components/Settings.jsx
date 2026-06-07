@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useToast } from './Toast';
@@ -74,11 +74,28 @@ export default function Settings() {
 
   const [name, setName] = useState(user?.user_metadata?.full_name || '');
   const [avatarUrl, setAvatarUrl] = useState(user?.user_metadata?.avatar_url || '');
-  const [currency, setCurrency] = useState(user?.user_metadata?.currency || 'BRL');
-  const [companyName, setCompanyName] = useState(user?.user_metadata?.company_name || '');
-  const [documentType, setDocumentType] = useState(user?.user_metadata?.document_type || 'CPF');
-  const [documentNumber, setDocumentNumber] = useState(user?.user_metadata?.document_number || '');
-  const [pixKey, setPixKey] = useState(user?.user_metadata?.pix_key || '');
+  const [currency, setCurrency] = useState('BRL');
+  const [companyName, setCompanyName] = useState('');
+  const [documentType, setDocumentType] = useState('CPF');
+  const [documentNumber, setDocumentNumber] = useState('');
+  const [pixKey, setPixKey] = useState('');
+
+  // Dados empresariais ficam em user_profiles (não no JWT)
+  useEffect(() => {
+    if (!user) return;
+    supabase.from('user_profiles')
+      .select('company_name, document_type, document_number, pix_key, currency')
+      .eq('user_id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (!data) return;
+        if (data.company_name)    setCompanyName(data.company_name);
+        if (data.document_type)   setDocumentType(data.document_type);
+        if (data.document_number) setDocumentNumber(data.document_number);
+        if (data.pix_key)         setPixKey(data.pix_key);
+        if (data.currency)        setCurrency(data.currency);
+      });
+  }, [user]);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [loadingBusiness, setLoadingBusiness] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -174,7 +191,8 @@ export default function Settings() {
   const handleUpdateProfileData = async (e) => {
     e.preventDefault();
     setLoadingProfile(true);
-    const { error } = await updateProfile({ data: { full_name: name, avatar_url: avatarUrl, currency, company_name: companyName, document_type: documentType, document_number: documentNumber, pix_key: pixKey } });
+    // Apenas nome e avatar ficam no user_metadata (JWT); dados empresariais vão para user_profiles
+    const { error } = await updateProfile({ data: { full_name: name, avatar_url: avatarUrl } });
     setLoadingProfile(false);
     error ? toast.error('Erro ao atualizar perfil') : toast.success('Perfil atualizado com sucesso');
   };
@@ -186,7 +204,14 @@ export default function Settings() {
       if (documentType === 'CNPJ' && !isValidCNPJ(documentNumber)) { toast.error('O CNPJ digitado é inválido.'); return; }
     }
     setLoadingBusiness(true);
-    const { error } = await updateProfile({ data: { full_name: name, avatar_url: avatarUrl, currency, company_name: companyName, document_type: documentType, document_number: documentNumber, pix_key: pixKey } });
+    // Dados empresariais e PIX salvos em user_profiles — nunca no JWT
+    const { error } = await supabase.from('user_profiles').update({
+      company_name:    companyName,
+      document_type:   documentType,
+      document_number: documentNumber,
+      pix_key:         pixKey,
+      currency,
+    }).eq('user_id', user.id);
     setLoadingBusiness(false);
     error ? toast.error('Erro ao atualizar empresa') : toast.success('Empresa atualizada com sucesso');
   };

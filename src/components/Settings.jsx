@@ -194,7 +194,7 @@ export default function Settings() {
   const handleUpdatePassword = async (e) => {
     e.preventDefault();
     if (password !== confirmPassword) { toast.error('As senhas não coincidem'); return; }
-    if (password.length < 6) { toast.error('A senha deve ter no mínimo 6 caracteres'); return; }
+    if (password.length < 8) { toast.error('A senha deve ter no mínimo 8 caracteres'); return; }
     setLoadingPassword(true);
     const { error } = await updateProfile({ password });
     setLoadingPassword(false);

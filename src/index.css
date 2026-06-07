@@ -372,6 +372,7 @@ h1, h2, h3, h4 {
   gap: 0.5rem;
   padding: 0.6rem 1.2rem;
   border-radius: var(--radius-md);
+  white-space: nowrap;
   font-family: var(--font-body);
   font-size: 0.85rem;
   font-weight: 600;
@@ -862,24 +863,27 @@ tbody tr:hover { background: rgba(255,255,255,0.025); }
   backdrop-filter: blur(2px);
 }
 
-@media (max-width: 768px) {
-  .sidebar-overlay { display: block; }
-}
-
 /* ── Responsive ── */
 @media (max-width: 900px) {
   .summary-cards { grid-template-columns: 1fr 1fr; }
   .kanban-board { grid-template-columns: 1fr 1fr; }
 }
 
-@media (max-width: 768px) {
-  /* Prevent iOS Safari auto-zoom on input focus (triggers when font-size < 16px) */
+/* ── Tablet + Mobile: sidebar colapsa, hambúrguer aparece ── */
+@media (max-width: 1024px) {
+  /* iOS Safari: previne auto-zoom em inputs em dispositivos touch */
   input, select, textarea { font-size: 16px !important; }
 
+  .sidebar-overlay { display: block; }
   .mobile-toggle { display: flex; }
   .sidebar { transform: translateX(-100%); }
   .sidebar.open { transform: translateX(0); }
-  .main-content { margin-left: 0; padding: 1rem; padding-top: 4rem; }
+  .main-content { margin-left: 0; padding: 1.5rem; padding-top: 4.5rem; }
+}
+
+/* ── Mobile (≤768px): layouts empilham ── */
+@media (max-width: 768px) {
+  .main-content { padding: 1rem; padding-top: 4rem; }
   .page-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
   .page-header .flex { flex-wrap: wrap; }
   .page-header select { min-width: 100% !important; }
@@ -888,8 +892,8 @@ tbody tr:hover { background: rgba(255,255,255,0.025); }
   .kanban-board { grid-template-columns: 1fr; }
   .form-row { grid-template-columns: 1fr; }
   .dashboard-layout { grid-template-columns: 1fr; }
-  
-  /* Calendar Mobile — compact, no scroll */
+
+  /* Calendar Mobile — compacto, sem scroll */
   .calendar-cell { min-height: 52px; padding: 0.2rem 0.15rem; }
   .calendar-header-cell { padding: 0.35rem 0.1rem; font-size: 0.58rem; letter-spacing: 0.04em; }
   .day-client-count { display: none; }
@@ -905,6 +909,12 @@ tbody tr:hover { background: rgba(255,255,255,0.025); }
     left: 50%;
     transform: translateX(-50%);
   }
+}
+
+/* ── Tablet (769px–1024px): calendário intermediário ── */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .calendar-cell { min-height: 70px; padding: 0.3rem 0.2rem; }
+  .calendar-header-cell { font-size: 0.65rem; }
 }
 
 @media (max-width: 480px) {
@@ -1486,7 +1496,7 @@ tbody tr:hover { background: rgba(255,255,255,0.025); }
 }
 
 /* Mobile */
-@media (max-width: 768px) {
+@media (max-width: 600px) {
   .login-page {
     padding: 0;
     align-items: stretch;
@@ -1807,7 +1817,7 @@ input:checked + .toggle-slider:before {
 }
 .mobile-back-btn { display: none; }
 
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .clients-list-layout { grid-template-columns: 1fr; }
   .clients-list-sidebar { max-height: 55vh; }
   .clients-list-layout:not(.has-selected) .clients-list-detail { display: none; }
@@ -1822,14 +1832,14 @@ input:checked + .toggle-slider:before {
 .sessions-desktop-table { display: block; }
 .sessions-mobile-cards { display: none; }
 
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .sessions-desktop-table { display: none; }
   .sessions-mobile-cards { display: block; }
   .sessions-mobile-cards > div:last-child { border-bottom: none; }
 }
 
 /* ── Clients Header Actions ── */
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .clients-header { flex-wrap: wrap; }
   .clients-header-actions { flex: 1 1 100%; flex-wrap: nowrap; }
 }
@@ -1841,11 +1851,17 @@ input:checked + .toggle-slider:before {
   gap: 2rem;
   align-items: start;
 }
-.post-desktop-table { display: block; }
+.post-desktop-table { display: block; overflow-x: auto; }
+.post-desktop-table > div { min-width: 720px; }
 .post-mobile-list { display: none; }
 
-@media (max-width: 768px) {
+/* Tablet: sidebar de stats empilha abaixo da tabela, tabela permanece visível */
+@media (max-width: 1024px) {
   .post-layout { grid-template-columns: 1fr; }
+}
+
+/* Mobile: troca tabela por cards */
+@media (max-width: 640px) {
   .post-desktop-table { display: none; }
   .post-mobile-list { display: flex; flex-direction: column; gap: 0.5rem; }
 }
@@ -1887,7 +1903,7 @@ html.light .pkg-card-row:hover { background: rgba(0,0,0,0.02); }
   gap: 0.75rem;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .pkg-filters {
     display: flex;
     flex-direction: column;

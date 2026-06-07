@@ -65,7 +65,7 @@ TOKEN_ENCRYPTION_KEY=[hex 64 chars — AES-256]
 filmmakercrm/
 ├── src/
 │   ├── main.jsx                    # Ponto de entrada React (StrictMode + render)
-│   ├── App.jsx                     # Roteador principal + AppLayout + AuthGate
+│   ├── App.jsx                     # Roteador principal + AppLayout + AuthGate + AdminDataWrapper
 │   ├── index.css                   # Design system global (variáveis CSS + componentes)
 │   ├── App.css                     # Arquivo vazio (não usar)
 │   ├── data.js                     # Constantes (SERVICE_TYPES)
@@ -80,19 +80,36 @@ filmmakercrm/
 │   │   ├── Login.jsx               # Tela de autenticação (login/register/reset)
 │   │   ├── BrandLogo.jsx           # Logo "TakeOne" com gradiente âmbar
 │   │   ├── Toast.jsx               # Sistema de notificações toast + ToastProvider
-│   │   └── ConfirmModal.jsx        # Modal de confirmação para ações destrutivas
+│   │   ├── ConfirmModal.jsx        # Modal de confirmação para ações destrutivas
+│   │   └── admin/
+│   │       ├── AdminGate.jsx       # Guarda de rota — bloqueia não-admins
+│   │       ├── AdminLayout.jsx     # Layout do painel admin (sidebar própria + badge ADMIN)
+│   │       ├── AdminDashboard.jsx  # Visão geral: métricas de usuários, receita, assinaturas
+│   │       ├── AdminUsers.jsx      # Listagem e gerenciamento de usuários
+│   │       ├── AdminUserDetail.jsx # Detalhe do usuário: perfil, assinatura, ações, audit
+│   │       ├── AdminSubscriptions.jsx # Gerenciamento de assinaturas
+│   │       ├── AdminPlans.jsx      # CRUD de planos de assinatura
+│   │       ├── AdminPayments.jsx   # Histórico de pagamentos de assinaturas
+│   │       ├── AdminMetrics.jsx    # Métricas avançadas (MRR, churn, crescimento)
+│   │       └── AdminAuditLog.jsx   # Log de ações administrativas
 │   ├── contexts/
-│   │   ├── AuthContext.jsx         # Estado global de autenticação (Supabase Auth)
+│   │   ├── AuthContext.jsx         # Estado global de autenticação + role/isAdmin
 │   │   └── ThemeContext.jsx        # Tema dark/light (persiste em localStorage)
 │   ├── hooks/
 │   │   ├── useSupabaseData.js      # Hook central — todos os CRUDs com otimismo
-│   │   └── useGoogleCalendar.js    # Integração OAuth + Google Calendar API
+│   │   ├── useGoogleCalendar.js    # Integração OAuth + Google Calendar API
+│   │   ├── useAdminData.js         # Dados do painel admin (users, planos, assinaturas, audit)
+│   │   └── useSubscription.js      # Assinatura ativa do usuário logado
 │   └── lib/
-│       └── supabaseClient.js       # Instância singleton do cliente Supabase
+│       ├── supabase.js             # Instância singleton do cliente Supabase
+│       └── adminActions.js         # Chamadas à Edge Function admin (suspender, trocar role, etc.)
 ├── supabase/
-│   └── functions/
-│       └── google-calendar/
-│           └── index.ts            # Edge Function: OAuth + token management AES-256
+│   ├── functions/
+│   │   ├── google-calendar/
+│   │   │   └── index.ts            # Edge Function: OAuth + token management AES-256
+│   │   └── admin/
+│   │       └── index.ts            # Edge Function: ações administrativas sensíveis
+│   └── migration_admin.sql         # Migration SQL para tabelas do painel admin
 ├── public/
 ├── vite.config.js
 ├── package.json
@@ -137,6 +154,8 @@ Sessões CRM + eventos Google Calendar exibidos lado a lado
 
 ## Roteamento (App.jsx)
 
+### Rotas da aplicação CRM
+
 | Rota | Componente | Descrição |
 |------|-----------|-----------|
 | `/login` | `Login` | Autenticação (login / register / reset) |
@@ -149,12 +168,29 @@ Sessões CRM + eventos Google Calendar exibidos lado a lado
 | `/settings` | `Settings` | Configurações do usuário |
 | `/*` | redirect | Redireciona para `/dashboard` |
 
-**Grupos de navegação na sidebar:**
-- **Principal:** Dashboard
-- **Clientes:** Clientes, Pacotes
-- **Produção:** Agenda, Pós-Produção
+### Rotas do painel admin (`/admin/*`) — protegidas por `AdminGate`
+
+| Rota | Componente | Descrição |
+|------|-----------|-----------|
+| `/admin` | `AdminDashboard` | Visão geral: usuários, receita, assinaturas |
+| `/admin/users` | `AdminUsers` | Listagem de todos os usuários |
+| `/admin/users/:id` | `AdminUserDetail` | Perfil, assinatura, ações e audit log do usuário |
+| `/admin/subscriptions` | `AdminSubscriptions` | Gerenciamento de assinaturas |
+| `/admin/plans` | `AdminPlans` | CRUD de planos de assinatura |
+| `/admin/payments` | `AdminPayments` | Histórico de pagamentos de assinaturas |
+| `/admin/metrics` | `AdminMetrics` | MRR, churn, crescimento |
+| `/admin/audit` | `AdminAuditLog` | Log de ações administrativas |
+
+**Grupos de navegação na sidebar CRM:**
+- **Principal:** Dashboard, Calendário
+- **Clientes:** Clientes & Pacotes, Pacotes
+- **Produção:** Postagens
 - **Financeiro:** Pagamentos
-- **Sistema:** Configurações
+- **Sistema:** Configurações, Painel Admin *(visível só para admins, com ícone ShieldCheck âmbar)*
+
+**Transição de página:** fade de opacidade (`.page-transition` com `key={location.pathname}`) — sem transform para não quebrar `position:fixed`.
+
+**Indicador ativo da sidebar:** elemento `.nav-slider` que desliza com `transition: top 0.25s ease-in-out` calculado via `getBoundingClientRect()`.
 
 ---
 
@@ -296,6 +332,8 @@ Persistido em `localStorage` com chave `takeone-theme`.
 const {
   user,              // Supabase User | null
   loading,           // boolean — checagem inicial
+  role,              // 'user' | 'admin' — carregado de user_profiles
+  isAdmin,           // boolean — shortcut para role === 'admin'
   signIn,            // (email, password) => Promise<{data, error}>
   signUp,            // (email, password, name) => Promise<{data, error}>
   signOut,           // () => Promise<{error}>
@@ -303,6 +341,8 @@ const {
   updateProfile,     // (updates) => Promise<{data, error}>
 } = useAuth()
 ```
+
+**Comportamento de role:** `fetchRole()` busca `user_profiles.role` em paralelo com o login — não bloqueia o carregamento inicial. Fallback é `'user'` em caso de erro.
 
 **Metadados do usuário** (via `user.user_metadata`):
 - `full_name` — nome completo
@@ -382,6 +422,59 @@ const {
 - Mutar pagamentos → recalcula `package.paid`
 - IDs temporários gerados como `tmp_${Date.now()}_${random}` para otimismo
 - Falha no DB → rollback do estado local
+
+### `useAdminData.js`
+
+Exclusivo do painel admin. Busca todas as tabelas administrativas via RPCs e queries diretas.
+
+```js
+const {
+  users,                    // UserRow[] — resultado de admin_get_users() RPC
+  subscriptions,            // Subscription[] com plan aninhado
+  subscriptionPayments,     // SubscriptionPayment[] (últimos 500)
+  plans,                    // Plan[] ordenados por sort_order
+  auditLog,                 // AdminAction[] (últimos 300)
+  loading,                  // boolean
+
+  refetch,                  // () => Promise<void>
+
+  updatePlan,               // (id, updates) => Promise<{data, error}>
+  createPlan,               // (plan) => Promise<{data, error}>
+
+  // Mutações locais (usadas após ações via Edge Function)
+  updateSubscriptionLocal,  // (id, updates) => void
+  removeSubscription,       // (id) => void
+  updateUserLocal,          // (id, updates) => void
+} = useAdminData()
+```
+
+### `useSubscription.js`
+
+Busca a assinatura ativa (`active` ou `trial`) do usuário logado.
+
+```js
+const { subscription, loading } = useSubscription()
+// subscription: { ...Subscription, plan: Plan } | null
+```
+
+### `adminActions.js` (lib)
+
+Wrapper para chamadas à Edge Function `admin`. Toda ação sensível passa por aqui.
+
+```js
+import { adminActions } from '../lib/adminActions';
+
+adminActions.suspendUser(user_id, reason)
+adminActions.reactivateUser(user_id)
+adminActions.changeRole(user_id, role)          // 'user' | 'admin'
+adminActions.deleteUser(user_id, hard_delete?)
+adminActions.resetUserPassword(user_id, email)
+adminActions.forceLogout(user_id)
+adminActions.updateSubscription(subscription_id, updates)
+adminActions.cancelSubscription(subscription_id, user_id, reason)
+adminActions.createManualPayment(subscription_id, user_id, amount, currency)
+adminActions.updateUserNotes(user_id, notes)
+```
 
 ### `useGoogleCalendar.js`
 
@@ -869,7 +962,88 @@ Renderiza `"Take"` em branco (`#f5f5f5`) e `"One"` com gradiente âmbar (`--ambe
 | action | text | Nome da ação |
 | created_at | timestamp | Janela de 1 hora |
 
-**Todas as tabelas têm política RLS: `user_id = auth.uid()`**
+**Todas as tabelas CRM têm política RLS: `user_id = auth.uid()`**
+
+---
+
+## Modelos de Dados — Painel Admin
+
+### `user_profiles`
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| user_id | uuid PK FK→auth.users | — |
+| role | text | `user` / `admin` |
+| status | text | `active` / `suspended` / `deleted` |
+| suspended_at | timestamptz | Data de suspensão |
+| suspension_reason | text | Motivo da suspensão |
+| notes | text | Notas do admin sobre o usuário |
+| created_at / updated_at | timestamptz | — |
+
+*Criado automaticamente por trigger `on_auth_user_created` a cada novo signup.*
+
+### `plans`
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| id | uuid PK | — |
+| slug | text UNIQUE | `free` / `starter` / `pro` / `studio` |
+| name | text | Nome do plano |
+| description | text | Descrição |
+| price_monthly | numeric | Preço mensal |
+| price_yearly | numeric | Preço anual |
+| features | jsonb | Array de strings com features |
+| limits | jsonb | `{max_clients, max_packages, ...}` |
+| is_active | boolean | Visível para novos usuários |
+| sort_order | int | Ordem de exibição |
+
+*RLS: leitura pública; escrita apenas para admins via `is_admin()`.*
+
+### `subscriptions`
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| id | uuid PK | — |
+| user_id | uuid FK | — |
+| plan_id | uuid FK→plans | — |
+| status | text | `trial` / `active` / `past_due` / `canceled` / `expired` |
+| billing_cycle | text | `monthly` / `yearly` |
+| current_period_start/end | timestamptz | Período atual |
+| trial_ends_at | timestamptz | Fim do trial |
+| canceled_at | timestamptz | Data de cancelamento |
+| cancel_reason | text | Motivo de cancelamento |
+| external_id / external_provider | text | ID e provedor externo (Stripe, etc.) |
+
+### `subscription_payments`
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| id | uuid PK | — |
+| subscription_id | uuid FK | — |
+| user_id | uuid FK | — |
+| amount | numeric | Valor pago |
+| currency | text | Padrão: `BRL` |
+| status | text | `pending` / `paid` / `failed` / `refunded` |
+| paid_at | timestamptz | Data do pagamento |
+| external_id | text | ID externo (gateway) |
+| invoice_url | text | URL da fatura |
+
+### `admin_actions` (audit log)
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| id | uuid PK | — |
+| admin_id | uuid FK→auth.users | Admin que executou a ação |
+| target_user_id | uuid FK nullable | Usuário alvo |
+| action | text | Nome da ação (ex: `suspend_user`) |
+| payload | jsonb | Dados da ação |
+| ip_address | text | IP do admin |
+| created_at | timestamptz | — |
+
+*RLS: somente admins podem ler e inserir.*
+
+### RPCs administrativas
+
+| RPC | Descrição |
+|-----|-----------|
+| `admin_get_users()` | Retorna todos os usuários com dados de auth + perfil. Requer `is_admin()`. |
+| `admin_get_user_stats(target_uid)` | Retorna contagens de clientes/pacotes/sessões/vídeos/pagamentos de um usuário. |
+| `is_admin(uid)` | Função helper `SECURITY DEFINER` para verificar role. |
 
 ---
 
@@ -905,6 +1079,31 @@ TOKEN_ENCRYPTION_KEY   # hex 64 chars
 
 ---
 
+## Edge Function: `admin/index.ts`
+
+Deno/TypeScript rodando no Supabase Edge. Chamada via `supabase.functions.invoke('admin', { body: { action, payload } })`. Executa ações administrativas sensíveis que requerem `service_role`.
+
+### Ações disponíveis
+
+| Ação | Descrição |
+|------|-----------|
+| `suspend_user` | Suspende usuário e atualiza `user_profiles.status` |
+| `reactivate_user` | Reativa usuário suspenso |
+| `change_role` | Altera role do usuário (`user` / `admin`) |
+| `delete_user` | Soft delete (status=deleted) ou hard delete do auth |
+| `reset_user_password` | Envia email de reset de senha |
+| `force_logout` | Revoga todas as sessões ativas do usuário |
+| `update_subscription` | Atualiza campos da assinatura |
+| `cancel_subscription` | Cancela assinatura com motivo |
+| `create_manual_payment` | Registra pagamento manual |
+| `update_user_notes` | Atualiza notas do admin sobre o usuário |
+
+**Segurança:** verifica `is_admin(auth.uid())` antes de executar qualquer ação. Registra todas as ações em `admin_actions` (audit log).
+
+**Redeploy:** `supabase functions deploy admin` após mudanças.
+
+---
+
 ## Convenções de Código
 
 - **Componentes:** Funcionais com hooks — sem class components
@@ -930,3 +1129,9 @@ TOKEN_ENCRYPTION_KEY   # hex 64 chars
 - **Avatar:** armazenado no bucket `avatars` do Supabase Storage (público).
 - **PDF:** recibos e propostas gerados client-side com `jsPDF` — sem servidor envolvido.
 - **Google Calendar:** eventos do CRM criados com prefixo `📹` no título para não serem reimportados como eventos externos.
+- **Painel admin:** rota `/admin/*` protegida por `AdminGate` (verifica `isAdmin` do `AuthContext`). Usar `adminActions` para toda ação sensível — nunca chamar `service_role` direto do frontend.
+- **Promover admin:** executar `UPDATE public.user_profiles SET role = 'admin' WHERE user_id = '<uuid>'` no SQL Editor do Supabase.
+- **Novo usuário:** trigger `on_auth_user_created` cria automaticamente um `user_profiles` com role `user` para cada signup.
+- **Tabelas admin e RLS:** `user_profiles`, `plans`, `subscriptions`, `subscription_payments` e `admin_actions` têm políticas baseadas em `is_admin(auth.uid())` — função `SECURITY DEFINER`.
+- **Transição de página:** o wrapper `<div key={location.pathname} className="page-transition">` aplica fade por CSS. Nunca usar `transform` neste wrapper — quebra `position:fixed` de modais.
+- **Indicador da sidebar:** calculado em `useEffect` com `getBoundingClientRect()` sempre que `location.pathname` muda.

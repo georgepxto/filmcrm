@@ -47,7 +47,7 @@ const NAV_GROUPS = [
   {
     label: 'Produção',
     items: [
-      { path: '/posts', label: 'Postagens' },
+      { path: '/posts', label: 'Produções' },
     ],
   },
   {

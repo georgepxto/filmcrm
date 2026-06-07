@@ -13,7 +13,7 @@ export const adminActions = {
   reactivateUser:      (user_id)                           => call('reactivate_user',        { user_id }),
   changeRole:          (user_id, role)                     => call('change_role',            { user_id, role }),
   deleteUser:          (user_id, hard_delete = false)      => call('delete_user',            { user_id, hard_delete }),
-  resetUserPassword:   (user_id, email)                    => call('reset_user_password',    { user_id, email }),
+  resetUserPassword:   (user_id)                           => call('reset_user_password',    { user_id }),
   forceLogout:         (user_id)                           => call('force_logout',           { user_id }),
   updateSubscription:  (subscription_id, updates)          => call('update_subscription',    { subscription_id, updates }),
   cancelSubscription:  (subscription_id, user_id, reason)  => call('cancel_subscription',   { subscription_id, user_id, reason }),

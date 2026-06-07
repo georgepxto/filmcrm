@@ -67,7 +67,6 @@ filmmakercrm/
 │   ├── main.jsx                    # Ponto de entrada React (StrictMode + render)
 │   ├── App.jsx                     # Roteador principal + AppLayout + AuthGate + AdminDataWrapper
 │   ├── index.css                   # Design system global (variáveis CSS + componentes)
-│   ├── App.css                     # Arquivo vazio (não usar)
 │   ├── data.js                     # Constantes (SERVICE_TYPES)
 │   ├── components/
 │   │   ├── Dashboard.jsx           # Página inicial — métricas, alertas, gráfico
@@ -98,8 +97,7 @@ filmmakercrm/
 │   ├── hooks/
 │   │   ├── useSupabaseData.js      # Hook central — todos os CRUDs com otimismo
 │   │   ├── useGoogleCalendar.js    # Integração OAuth + Google Calendar API
-│   │   ├── useAdminData.js         # Dados do painel admin (users, planos, assinaturas, audit)
-│   │   └── useSubscription.js      # Assinatura ativa do usuário logado
+│   │   └── useAdminData.js         # Dados do painel admin (users, planos, assinaturas, audit)
 │   └── lib/
 │       ├── supabase.js             # Instância singleton do cliente Supabase
 │       └── adminActions.js         # Chamadas à Edge Function admin (suspender, trocar role, etc.)
@@ -143,7 +141,7 @@ useGoogleCalendar.signIn() → OAuth popup (GIS)
     ↓
 Edge Function exchange_code → armazena refresh_token AES-256-GCM no DB
     ↓
-Access token salvo no localStorage (chave: takeone_gcal_token)
+Access token salvo no sessionStorage (chave: takeone_gcal_token)
     ↓
 Token renovado automaticamente 5 min antes de expirar
     ↓
@@ -457,15 +455,6 @@ const {
 } = useAdminData()
 ```
 
-### `useSubscription.js`
-
-Busca a assinatura ativa (`active` ou `trial`) do usuário logado.
-
-```js
-const { subscription, loading } = useSubscription()
-// subscription: { ...Subscription, plan: Plan } | null
-```
-
 ### `adminActions.js` (lib)
 
 Wrapper para chamadas à Edge Function `admin`. Toda ação sensível passa por aqui.
@@ -477,7 +466,7 @@ adminActions.suspendUser(user_id, reason)
 adminActions.reactivateUser(user_id)
 adminActions.changeRole(user_id, role)          // 'user' | 'admin'
 adminActions.deleteUser(user_id, hard_delete?)
-adminActions.resetUserPassword(user_id, email)
+adminActions.resetUserPassword(user_id)            // email buscado server-side
 adminActions.forceLogout(user_id)
 adminActions.updateSubscription(subscription_id, updates)
 adminActions.cancelSubscription(subscription_id, user_id, reason)
@@ -506,10 +495,14 @@ const {
 **Constantes internas:**
 ```js
 SCOPES = 'calendar.events calendar.readonly'
-LS_TOKEN_KEY  = 'takeone_gcal_token'
-LS_EXPIRY_KEY = 'takeone_gcal_expiry'
-REFRESH_MARGIN_MS = 5 * 60 * 1000  // renovar 5 min antes de expirar
+LS_TOKEN_KEY  = 'takeone_gcal_token'    // sessionStorage (não localStorage)
+LS_EXPIRY_KEY = 'takeone_gcal_expiry'   // sessionStorage
+REFRESH_MARGIN_MS = 5 * 60 * 1000      // renovar 5 min antes de expirar
 ```
+
+**Token storage:** access token salvo em `sessionStorage` (limpo ao fechar a aba). Na restauração de página, se o token expirou, busca novo via Edge Function `get_token`.
+
+**`buildEventTimes(date, timeStart, timeEnd)`:** helper interno que monta `start`/`end` no formato correto para a API do Google Calendar. Normaliza `HH:MM:SS` do banco para `HH:MM`. Se `timeStart` for nulo, cria evento all-day com `{ date }`. Se `timeEnd` for vazio, usa `timeStart + 1h` como fallback.
 
 **Filtros:** eventos com `"filmmakercrm"` na description ou título começando com `"📹"` ou `"📅"` são excluídos da exibição (evitar duplicação). `📅` é usado em eventos pessoais do CRM (sem cliente vinculado).
 
@@ -780,11 +773,17 @@ posted > delivered > edited > "não iniciado"
 3. **Aparência:** cards de tema (Dark / Light) com preview visual
 4. **Segurança:** formulário de troca de senha com validação
 
+**Upload de avatar:**
+- MIME types permitidos: `image/jpeg`, `image/png`, `image/webp`, `image/gif`
+- Limite de tamanho: 5 MB
+- Nome do arquivo gerado com `crypto.randomUUID()` (não `Math.random()`)
+- Extensão derivada de `file.type`, não de `file.name`
+
 **Validações:**
 - CPF: algoritmo de validação dos dígitos verificadores
 - CNPJ: algoritmo de validação dos dígitos verificadores
 - Auto-formatação de CPF (000.000.000-00) e CNPJ (00.000.000/0000-00)
-- Senha: mínimo 6 caracteres + confirmação
+- Senha: mínimo **8 caracteres** + confirmação (configurar mesmo mínimo no Supabase Auth dashboard)
 
 ---
 
@@ -1077,6 +1076,8 @@ Deno/TypeScript rodando no Supabase Edge. Chamada via `supabase.functions.invoke
 - Autenticação: JWT via header `Authorization: Bearer`
 - Rate limiting: janela deslizante de 1 hora por `user_id + action + IP`
 - Migração automática de tokens plaintext legados para formato criptografado
+- Erros internos retornam mensagem genérica — nunca stack trace ou detalhes de DB
+- CORS dinâmico: aceita `https://filmmakercrm.vercel.app` em prod e `http://localhost:5173` / `http://localhost` em dev
 
 **Variáveis de ambiente necessárias:**
 ```
@@ -1109,9 +1110,15 @@ Deno/TypeScript rodando no Supabase Edge. Chamada via `supabase.functions.invoke
 | `create_manual_payment` | Registra pagamento manual |
 | `update_user_notes` | Atualiza notas do admin sobre o usuário |
 
-**Segurança:** verifica `is_admin(auth.uid())` antes de executar qualquer ação. Registra todas as ações em `admin_actions` (audit log).
+**Segurança:**
+- Verifica role via `adminClient` (service role, imune a bugs de RLS) — não via `userClient`
+- Registra todas as ações em `admin_actions` (audit log)
+- `reset_user_password`: email buscado server-side via `getUserById`, nunca do payload
+- `update_subscription`: whitelist de campos permitidos — `updates` do cliente não é espalhado diretamente
+- Erros internos retornam mensagem genérica `"Internal server error"` — nunca detalhes de DB
+- CORS dinâmico: aceita `https://filmmakercrm.vercel.app` em prod e `http://localhost:5173` / `http://localhost` em dev
 
-**Redeploy:** `supabase functions deploy admin` após mudanças.
+**Redeploy:** `supabase functions deploy admin` após mudanças. CLI instalada via `npm install -g supabase`.
 
 ---
 
@@ -1134,16 +1141,20 @@ Deno/TypeScript rodando no Supabase Edge. Chamada via `supabase.functions.invoke
 - **React Router nested layout:** `App.jsx` define `AppLayout` que envolve todas as rotas protegidas com a sidebar. `AuthGate` redireciona para `/login` se não autenticado.
 - **Não criar lógica paralela de sessão** — `AuthContext` já persiste e escuta mudanças via `onAuthStateChange`.
 - **Novas tabelas Supabase:** sempre criar política RLS com `user_id = auth.uid()`.
-- **Edge Function:** requer redeploy via `supabase functions deploy google-calendar` após mudanças.
-- **Otimismo:** `useSupabaseData` usa IDs temporários `tmp_*` e faz rollback em falha.
+- **Edge Functions:** redeploy via `supabase functions deploy <nome>` após mudanças. CLI instalada via `npm install -g supabase`.
+- **Otimismo:** `useSupabaseData` usa IDs temporários `tmp_*` e faz rollback em falha. `console.error` loga apenas `error.code` + `error.message`, nunca o objeto completo.
 - **Tema:** o `ThemeProvider` precisa estar acima de tudo para que `useTheme()` funcione em qualquer componente.
-- **Avatar:** armazenado no bucket `avatars` do Supabase Storage (público).
+- **Avatar:** armazenado no bucket `avatars` do Supabase Storage (público). Upload valida MIME type e tamanho (máx 5 MB) no frontend — configurar policy equivalente no bucket do Supabase.
 - **PDF:** recibos e propostas gerados client-side com `jsPDF` — sem servidor envolvido.
 - **Google Calendar:** eventos do CRM criados com prefixo `📹` (com cliente) ou `📅` (pessoal/sem cliente) no título para não serem reimportados como eventos externos. O filtro em `useGoogleCalendar.js` exclui ambos os prefixos.
-- **Google Calendar localhost:** para funcionar em desenvolvimento, adicionar `http://localhost` e `http://localhost:5173` nas **Authorized JavaScript origins** do OAuth Client no Google Cloud Console (não nos redirect URIs — o fluxo usa `postmessage`).
-- **Painel admin:** rota `/admin/*` protegida por `AdminGate` (verifica `isAdmin` do `AuthContext`). Usar `adminActions` para toda ação sensível — nunca chamar `service_role` direto do frontend.
+- **Google Calendar — formato de tempo:** o banco retorna `time` como `HH:MM:SS`. A função `buildEventTimes` normaliza para `HH:MM` antes de enviar à API. Nunca construir `dateTime` manualmente — usar `buildEventTimes`.
+- **Google Calendar — all-day:** eventos all-day usam `{ date: 'YYYY-MM-DD' }` (sem `dateTime`). `end.date` é exclusivo na API do Google — usa dia seguinte.
+- **Google Calendar localhost:** adicionar `http://localhost` e `http://localhost:5173` nas **Authorized JavaScript origins** do OAuth Client no Google Cloud Console (não nos redirect URIs).
+- **Painel admin:** rota `/admin/*` protegida por `AdminGate` (verifica `isAdmin` do `AuthContext`). Usar `adminActions` para toda ação sensível — nunca chamar `service_role` direto do frontend. A checagem real de privilégio usa `adminClient` (service role) na Edge Function, imune a bugs de RLS.
 - **Promover admin:** executar `UPDATE public.user_profiles SET role = 'admin' WHERE user_id = '<uuid>'` no SQL Editor do Supabase.
 - **Novo usuário:** trigger `on_auth_user_created` cria automaticamente um `user_profiles` com role `user` para cada signup.
 - **Tabelas admin e RLS:** `user_profiles`, `plans`, `subscriptions`, `subscription_payments` e `admin_actions` têm políticas baseadas em `is_admin(auth.uid())` — função `SECURITY DEFINER`.
+- **Senha mínima:** 8 caracteres no frontend e no Supabase Auth dashboard (Authentication → Providers → Email → Minimum password length).
 - **Transição de página:** o wrapper `<div key={location.pathname} className="page-transition">` aplica fade por CSS. Nunca usar `transform` neste wrapper — quebra `position:fixed` de modais.
 - **Indicador da sidebar:** calculado em `useEffect` com `getBoundingClientRect()` sempre que `location.pathname` muda.
+- **Arquivos removidos:** `src/App.css`, `src/assets/TakeOne.png`, `src/assets/TakeOne.svg`, `src/hooks/useSubscription.js`, `public/favicon-clapper.svg`, `public/icons.svg`. Não recriar.

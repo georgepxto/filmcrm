@@ -236,23 +236,32 @@ export function useGoogleCalendar() {
     }
   }, [isSignedIn, clearAuth]);
 
-  // Monta start/end no formato correto para a API do Google Calendar:
-  // all-day usa { date: 'YYYY-MM-DD' }, evento com hora usa { dateTime, timeZone }
+  // Monta start/end no formato correto para a API do Google Calendar.
+  // all-day usa { date: 'YYYY-MM-DD' }, evento com hora usa { dateTime, timeZone }.
+  // Normaliza o tempo para HH:MM pois o banco retorna HH:MM:SS (com segundos).
   const buildEventTimes = (date, timeStart, timeEnd) => {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (!timeStart) {
-      // All-day: end.date é exclusivo na API, então usa o dia seguinte
+    const hhmm = (t) => (t || '').substring(0, 5); // '09:00:00' → '09:00', '' → ''
+    const addHour = (t) => {
+      const [h, m] = t.split(':').map(Number);
+      return `${String((h + 1) % 24).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    };
+
+    const t1 = hhmm(timeStart);
+    if (!t1) {
+      // All-day: end.date é exclusivo na API do Google, usa dia seguinte
       const nextDay = new Date(date + 'T00:00:00');
       nextDay.setDate(nextDay.getDate() + 1);
-      const endDate = nextDay.toISOString().split('T')[0];
       return {
         start: { date },
-        end:   { date: endDate },
+        end:   { date: nextDay.toISOString().split('T')[0] },
       };
     }
+
+    const t2 = hhmm(timeEnd) || addHour(t1); // fallback: +1h para evitar evento de duração zero
     return {
-      start: { dateTime: `${date}T${timeStart}:00`, timeZone: tz },
-      end:   { dateTime: `${date}T${timeEnd || timeStart}:00`, timeZone: tz },
+      start: { dateTime: `${date}T${t1}:00`, timeZone: tz },
+      end:   { dateTime: `${date}T${t2}:00`,  timeZone: tz },
     };
   };
 

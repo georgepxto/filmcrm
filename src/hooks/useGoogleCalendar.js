@@ -236,17 +236,35 @@ export function useGoogleCalendar() {
     }
   }, [isSignedIn, clearAuth]);
 
+  // Monta start/end no formato correto para a API do Google Calendar:
+  // all-day usa { date: 'YYYY-MM-DD' }, evento com hora usa { dateTime, timeZone }
+  const buildEventTimes = (date, timeStart, timeEnd) => {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (!timeStart) {
+      // All-day: end.date é exclusivo na API, então usa o dia seguinte
+      const nextDay = new Date(date + 'T00:00:00');
+      nextDay.setDate(nextDay.getDate() + 1);
+      const endDate = nextDay.toISOString().split('T')[0];
+      return {
+        start: { date },
+        end:   { date: endDate },
+      };
+    }
+    return {
+      start: { dateTime: `${date}T${timeStart}:00`, timeZone: tz },
+      end:   { dateTime: `${date}T${timeEnd || timeStart}:00`, timeZone: tz },
+    };
+  };
+
   // Create a new event on Google Calendar
   const createEvent = useCallback(async ({ summary, description, date, timeStart, timeEnd, location }) => {
     if (!isSignedIn) return null;
     try {
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const event = {
         summary,
         description: description || '',
         location: location || '',
-        start: { dateTime: `${date}T${timeStart || '09:00'}:00`, timeZone: tz },
-        end:   { dateTime: `${date}T${timeEnd   || '10:00'}:00`, timeZone: tz },
+        ...buildEventTimes(date, timeStart, timeEnd),
         colorId: '6',
       };
       const response = await window.gapi.client.calendar.events.insert({
@@ -264,13 +282,11 @@ export function useGoogleCalendar() {
   const updateEvent = useCallback(async (eventId, { summary, description, date, timeStart, timeEnd, location }) => {
     if (!isSignedIn || !eventId) return null;
     try {
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const event = {
         summary,
         description: description || '',
         location: location || '',
-        start: { dateTime: `${date}T${timeStart || '09:00'}:00`, timeZone: tz },
-        end:   { dateTime: `${date}T${timeEnd   || '10:00'}:00`, timeZone: tz },
+        ...buildEventTimes(date, timeStart, timeEnd),
         colorId: '6',
       };
       const response = await window.gapi.client.calendar.events.update({

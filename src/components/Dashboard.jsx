@@ -7,13 +7,11 @@ import { useTheme } from '../contexts/ThemeContext';
 
 const SectionLabel = ({ children }) => (
   <p style={{
-    fontSize: '0.6rem',
-    fontWeight: 700,
-    letterSpacing: '0.18em',
-    textTransform: 'uppercase',
+    fontSize: '0.75rem',
+    fontWeight: 600,
+    letterSpacing: '-0.01em',
     color: 'var(--text-muted)',
     marginBottom: '0.75rem',
-    opacity: 0.8,
   }}>
     {children}
   </p>
@@ -171,8 +169,8 @@ export default function Dashboard({ clients, packages, sessions, payments, video
         onClick={() => onNavigate('payments')}
       >
         <p style={{
-          fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.18em',
-          textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.6rem', opacity: 0.8,
+          fontSize: '0.75rem', fontWeight: 600, letterSpacing: '-0.01em',
+          color: 'var(--text-muted)', marginBottom: '0.6rem',
         }}>
           Previsto este mês
         </p>
@@ -225,9 +223,9 @@ export default function Dashboard({ clients, packages, sessions, payments, video
             onClick={m.nav ? () => onNavigate(m.nav) : undefined}
           >
             <span style={{
-              display: 'block', fontSize: '0.65rem', fontWeight: 600,
-              letterSpacing: '0.1em', textTransform: 'uppercase',
-              color: 'var(--text-muted)', marginBottom: '0.5rem', opacity: 0.8,
+              display: 'block', fontSize: '0.75rem', fontWeight: 600,
+              letterSpacing: '-0.01em',
+              color: 'var(--text-muted)', marginBottom: '0.5rem',
             }}>
               {m.label}
             </span>

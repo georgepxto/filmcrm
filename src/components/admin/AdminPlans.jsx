@@ -187,14 +187,14 @@ export default function AdminPlans({ plans, updatePlan, createPlan }) {
                   {p.description && <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>{p.description}</p>}
                   <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '0.75rem' }}>
                     <div>
-                      <p style={{ fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-muted)', fontWeight: 700 }}>Mensal</p>
+                      <p style={{ fontSize: '0.72rem', letterSpacing: '-0.01em', color: 'var(--text-muted)', fontWeight: 600 }}>Mensal</p>
                       <p style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', color: 'var(--amber)' }}>
                         {p.price_monthly > 0 ? `R$ ${p.price_monthly}` : 'Grátis'}
                       </p>
                     </div>
                     {p.price_yearly > 0 && (
                       <div>
-                        <p style={{ fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-muted)', fontWeight: 700 }}>Anual</p>
+                        <p style={{ fontSize: '0.72rem', letterSpacing: '-0.01em', color: 'var(--text-muted)', fontWeight: 600 }}>Anual</p>
                         <p style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', color: 'var(--text-secondary)' }}>R$ {p.price_yearly}</p>
                       </div>
                     )}

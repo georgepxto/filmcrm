@@ -12,7 +12,7 @@ const STATUS_LABEL = { active: 'Ativo', suspended: 'Suspenso', deleted: 'Excluí
 const fmt = (n) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n);
 
 const SL = ({ children }) => (
-  <p style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.75rem', opacity: 0.8 }}>
+  <p style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '-0.01em', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
     {children}
   </p>
 );
@@ -262,7 +262,7 @@ export default function AdminUserDetail({ users, subscriptions, subscriptionPaym
                 ].map(([l, v]) => (
                   <div key={l} style={{ textAlign: 'center' }}>
                     <p style={{ fontFamily: 'var(--font-display)', fontSize: '1.6rem', color: 'var(--amber)', lineHeight: 1, marginBottom: '0.25rem' }}>{v ?? '—'}</p>
-                    <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{l}</p>
+                    <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', letterSpacing: '-0.01em' }}>{l}</p>
                   </div>
                 ))}
               </div>

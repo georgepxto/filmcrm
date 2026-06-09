@@ -117,7 +117,7 @@ export default function AdminLayout() {
             <div className="sidebar-user-info">
               <div className="sidebar-user-avatar" style={{ padding: 0, overflow: 'hidden' }}>
                 {user?.user_metadata?.avatar_url ? (
-                  <img src={user.user_metadata.avatar_url} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={user.user_metadata.avatar_url} alt="Avatar" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
                   userName.charAt(0).toUpperCase()
                 )}

@@ -34,8 +34,8 @@ const getPlatformName = (url) => {
 /* ── Reusable micro-components ── */
 const SecLabel = ({ children, style = {} }) => (
   <span style={{
-    fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.18em',
-    textTransform: 'uppercase', color: 'var(--text-muted)', opacity: 0.8,
+    fontSize: '0.75rem', fontWeight: 600, letterSpacing: '-0.01em',
+    color: 'var(--text-muted)',
     ...style,
   }}>
     {children}
@@ -308,8 +308,8 @@ export default function Clients({
           {metricCols.map(({ label, value, color }) => (
             <div key={label}>
               <div style={{
-                fontSize: '0.58rem', textTransform: 'uppercase', letterSpacing: '0.12em',
-                color: 'var(--text-muted)', fontWeight: 600, opacity: 0.7, marginBottom: '0.15rem',
+                fontSize: '0.68rem', letterSpacing: '-0.01em',
+                color: 'var(--text-muted)', fontWeight: 600, marginBottom: '0.15rem',
               }}>
                 {label}
               </div>
@@ -1011,8 +1011,8 @@ export default function Clients({
                 </div>
                 {isEditing && (
                   <>
-                    <p style={{ fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--text-muted)', marginBottom: '0.6rem', marginTop: '0.25rem', opacity: 0.8, fontWeight: 700 }}>
-                      Progresso & Status
+                    <p style={{ fontSize: '0.75rem', letterSpacing: '-0.01em', color: 'var(--text-muted)', marginBottom: '0.6rem', marginTop: '0.25rem', fontWeight: 600 }}>
+                      Progresso & status
                     </p>
                     <div className="form-row">
                       <div className="form-group">

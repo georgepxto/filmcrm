@@ -26,16 +26,16 @@ const OutlineBtn = ({ onClick, children, style = {}, disabled = false }) => (
 
 const SecLabel = ({ children, style = {} }) => (
   <span style={{
-    fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.18em',
-    textTransform: 'uppercase', color: 'var(--text-muted)', opacity: 0.8, ...style,
+    fontSize: '0.75rem', fontWeight: 600, letterSpacing: '-0.01em',
+    color: 'var(--text-muted)', ...style,
   }}>
     {children}
   </span>
 );
 
 const miniMetricLabel = {
-  fontSize: '0.55rem', textTransform: 'uppercase', letterSpacing: '0.12em',
-  color: 'var(--text-muted)', fontWeight: 600, opacity: 0.65, marginBottom: '0.2rem',
+  fontSize: '0.68rem', letterSpacing: '-0.01em',
+  color: 'var(--text-muted)', fontWeight: 600, marginBottom: '0.2rem',
 };
 
 const fieldStyle = {
@@ -322,7 +322,7 @@ export default function Payments({ clients, packages, payments, addPayment, dele
 
       {/* ── Featured metric — Previsto/Mês ── */}
       <div style={{ padding: '1.75rem 2rem', border: '0.5px solid var(--border)', borderRadius: 8, background: 'var(--bg-card)', marginBottom: '0.5rem' }}>
-        <p style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.6rem', opacity: 0.8 }}>
+        <p style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '-0.01em', color: 'var(--text-muted)', marginBottom: '0.6rem' }}>
           Previsto este mês
         </p>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2.4rem, 5vw, 3rem)', fontWeight: 400, color: 'var(--amber)', letterSpacing: '-0.02em', lineHeight: 1, marginBottom: '0.5rem' }}>

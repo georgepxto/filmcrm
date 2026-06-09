@@ -266,8 +266,8 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
               display: 'flex', alignItems: 'center', gap: '1rem',
               padding: '0.75rem 1.25rem',
               borderBottom: '1px solid var(--border)',
-              fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase',
-              letterSpacing: '0.06em', color: 'var(--text-muted)',
+              fontSize: '0.75rem', fontWeight: 600,
+              letterSpacing: '-0.01em', color: 'var(--text-muted)',
               background: 'var(--bg-secondary)'
             }}>
               <div style={{ ...colTask, display: 'flex', alignItems: 'center', gap: '6px' }}><ClipboardList size={14} /> Tarefa</div>

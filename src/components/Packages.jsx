@@ -27,8 +27,8 @@ const OutlineBtn = ({ onClick, children, style = {}, disabled = false }) => (
 
 const SecLabel = ({ children }) => (
   <span style={{
-    fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.18em',
-    textTransform: 'uppercase', color: 'var(--text-muted)', opacity: 0.8,
+    fontSize: '0.75rem', fontWeight: 600, letterSpacing: '-0.01em',
+    color: 'var(--text-muted)',
   }}>
     {children}
   </span>
@@ -146,7 +146,7 @@ export default function Packages({ clients, packages, payments, videos, updatePa
 
       {/* ── Featured metric — Valor Total ── */}
       <div style={{ padding: '1.75rem 2rem', border: '0.5px solid var(--border)', borderRadius: 8, background: 'var(--bg-card)', marginBottom: '0.5rem' }}>
-        <p style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.6rem', opacity: 0.8 }}>
+        <p style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '-0.01em', color: 'var(--text-muted)', marginBottom: '0.6rem' }}>
           Valor total em carteira
         </p>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2.4rem, 5vw, 3.2rem)', fontWeight: 400, color: 'var(--amber)', letterSpacing: '-0.02em', lineHeight: 1, marginBottom: '0.5rem' }}>
@@ -166,7 +166,7 @@ export default function Packages({ clients, packages, payments, videos, updatePa
           { label: 'Críticos', value: lowPkgs.length, color: lowPkgs.length > 0 ? 'var(--warning)' : 'var(--text-muted)' },
         ].map(m => (
           <div key={m.label} style={{ padding: '1rem 1.25rem', border: '0.5px solid var(--border)', borderRadius: 8, background: 'var(--bg-card)' }}>
-            <span style={{ display: 'block', fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.5rem', opacity: 0.8 }}>
+            <span style={{ display: 'block', fontSize: '0.72rem', fontWeight: 600, letterSpacing: '-0.01em', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
               {m.label}
             </span>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.9rem', fontWeight: 400, color: m.color, lineHeight: 1, letterSpacing: '-0.01em' }}>
@@ -309,7 +309,7 @@ export default function Packages({ clients, packages, payments, videos, updatePa
                         { label: 'Devendo', value: `${cSym} ${owed.toLocaleString('pt-BR')}`, color: owed > 0 ? 'var(--danger)' : 'var(--text-muted)' },
                       ].map(({ label, value, color }) => (
                         <div key={label} style={{ padding: '0.6rem 0.65rem', border: '0.5px solid var(--border)', borderRadius: 6, textAlign: 'center' }}>
-                          <div style={{ fontSize: '0.55rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-muted)', fontWeight: 600, opacity: 0.7, marginBottom: '0.2rem' }}>
+                          <div style={{ fontSize: '0.68rem', letterSpacing: '-0.01em', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '0.2rem' }}>
                             {label}
                           </div>
                           <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.15rem', fontWeight: 300, color, lineHeight: 1 }}>

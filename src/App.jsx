@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ChevronRight, LogOut, ShieldCheck, Loader } from 'lucide-react';
 import BrandLogo from './components/BrandLogo';
@@ -9,25 +9,32 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useSupabaseData } from './hooks/useSupabaseData';
 import { useAdminData } from './hooks/useAdminData';
 import { ToastProvider } from './components/Toast';
-import Login from './components/Login';
-import Dashboard from './components/Dashboard';
-import Calendar from './components/Calendar';
-import Clients from './components/Clients';
-import PostControl from './components/PostControl';
-import Payments from './components/Payments';
-import Packages from './components/Packages';
-import Settings from './components/Settings';
-
 import AdminGate from './components/admin/AdminGate';
-import AdminLayout from './components/admin/AdminLayout';
-import AdminDashboard from './components/admin/AdminDashboard';
-import AdminUsers from './components/admin/AdminUsers';
-import AdminUserDetail from './components/admin/AdminUserDetail';
-import AdminSubscriptions from './components/admin/AdminSubscriptions';
-import AdminPlans from './components/admin/AdminPlans';
-import AdminPayments from './components/admin/AdminPayments';
-import AdminMetrics from './components/admin/AdminMetrics';
-import AdminAuditLog from './components/admin/AdminAuditLog';
+
+const Login          = lazy(() => import('./components/Login'));
+const Dashboard      = lazy(() => import('./components/Dashboard'));
+const Calendar       = lazy(() => import('./components/Calendar'));
+const Clients        = lazy(() => import('./components/Clients'));
+const PostControl    = lazy(() => import('./components/PostControl'));
+const Payments       = lazy(() => import('./components/Payments'));
+const Packages       = lazy(() => import('./components/Packages'));
+const Settings       = lazy(() => import('./components/Settings'));
+
+const AdminLayout        = lazy(() => import('./components/admin/AdminLayout'));
+const AdminDashboard     = lazy(() => import('./components/admin/AdminDashboard'));
+const AdminUsers         = lazy(() => import('./components/admin/AdminUsers'));
+const AdminUserDetail    = lazy(() => import('./components/admin/AdminUserDetail'));
+const AdminSubscriptions = lazy(() => import('./components/admin/AdminSubscriptions'));
+const AdminPlans         = lazy(() => import('./components/admin/AdminPlans'));
+const AdminPayments      = lazy(() => import('./components/admin/AdminPayments'));
+const AdminMetrics       = lazy(() => import('./components/admin/AdminMetrics'));
+const AdminAuditLog      = lazy(() => import('./components/admin/AdminAuditLog'));
+
+const RouteFallback = () => (
+  <div className="loading-screen" style={{ minHeight: '60vh' }}>
+    <Loader size={28} className="login-spinner" />
+  </div>
+);
 
 const NAV_GROUPS = [
   {
@@ -61,6 +68,7 @@ const NAV_GROUPS = [
 function AdminDataWrapper() {
   const adminData = useAdminData();
   return (
+    <Suspense fallback={<RouteFallback />}>
     <Routes>
       <Route element={<AdminLayout />}>
         <Route index element={<AdminDashboard users={adminData.users} subscriptions={adminData.subscriptions} subscriptionPayments={adminData.subscriptionPayments} plans={adminData.plans} />} />
@@ -74,6 +82,7 @@ function AdminDataWrapper() {
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Route>
     </Routes>
+    </Suspense>
   );
 }
 
@@ -128,6 +137,7 @@ function AppLayout() {
       );
     }
     return (
+      <Suspense fallback={<RouteFallback />}>
       <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard clients={data.clients} packages={data.packages} sessions={data.sessions} payments={data.payments} videos={data.videos} onNavigate={(p) => navigate('/' + p)} />} />
@@ -139,6 +149,7 @@ function AppLayout() {
         <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
+      </Suspense>
     );
   };
 
@@ -204,7 +215,7 @@ function AppLayout() {
             <div className="sidebar-user-info">
               <div className="sidebar-user-avatar" style={{ padding: 0, overflow: 'hidden' }}>
                 {user.user_metadata?.avatar_url ? (
-                  <img src={user.user_metadata.avatar_url} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={user.user_metadata.avatar_url} alt="Avatar" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
                   userName.charAt(0).toUpperCase()
                 )}
@@ -250,6 +261,7 @@ function AuthGate() {
   }
 
   return (
+    <Suspense fallback={<RouteFallback />}>
     <Routes>
       <Route path="/login" element={!user ? <Login /> : <Navigate to="/dashboard" replace />} />
       <Route path="/admin/*" element={
@@ -259,6 +271,7 @@ function AuthGate() {
       } />
       <Route path="/*" element={<AppLayout />} />
     </Routes>
+    </Suspense>
   );
 }
 

@@ -85,7 +85,7 @@ export default function AdminPayments({ subscriptionPayments, subscriptions, use
           { label: 'Falhou',   value: totalFailed,   color: 'var(--danger)' },
         ].map(c => (
           <div key={c.label} className="card" style={{ padding: '1.25rem 1.5rem' }}>
-            <p style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>{c.label}</p>
+            <p style={{ fontSize: '0.72rem', fontWeight: 600, letterSpacing: '-0.01em', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>{c.label}</p>
             <p style={{ fontFamily: 'var(--font-display)', fontSize: '1.6rem', color: c.color, lineHeight: 1 }}>{fmt(c.value)}</p>
           </div>
         ))}

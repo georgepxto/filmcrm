@@ -10,7 +10,7 @@ const fmt = (n) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency:
 const PIE_COLORS = ['#d4870a', '#e8a833', '#a06808', '#60a5fa', '#34d399'];
 
 const SL = ({ children }) => (
-  <p style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.75rem', opacity: 0.8 }}>
+  <p style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '-0.01em', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
     {children}
   </p>
 );
@@ -104,7 +104,7 @@ export default function AdminMetrics({ users, subscriptions, subscriptionPayment
           { label: 'Churn — mês atual',   value: `${churnRate}%`,      sub: `${canceledThisMonth} cancelamentos` },
         ].map(c => (
           <div key={c.label} className="card" style={{ padding: '1.25rem 1.5rem' }}>
-            <p style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>{c.label}</p>
+            <p style={{ fontSize: '0.72rem', fontWeight: 600, letterSpacing: '-0.01em', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>{c.label}</p>
             <p style={{ fontFamily: 'var(--font-display)', fontSize: '1.55rem', color: 'var(--amber)', lineHeight: 1, marginBottom: '0.3rem' }}>{c.value}</p>
             <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{c.sub}</p>
           </div>

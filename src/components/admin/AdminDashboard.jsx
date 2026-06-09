@@ -9,7 +9,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
 const SL = ({ children }) => (
-  <p style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.75rem', opacity: 0.8 }}>
+  <p style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '-0.01em', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
     {children}
   </p>
 );
@@ -75,7 +75,7 @@ export default function AdminDashboard({ users, subscriptions, subscriptionPayme
 
       {/* Hero MRR */}
       <div className="summary-card" style={{ marginBottom: '1.5rem', padding: '1.75rem 2rem' }}>
-        <p style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--amber)', opacity: 0.8, marginBottom: '0.4rem' }}>
+        <p style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '-0.01em', color: 'var(--amber)', marginBottom: '0.4rem' }}>
           MRR — Receita Mensal Recorrente
         </p>
         <p style={{ fontFamily: 'var(--font-display)', fontSize: '2.8rem', color: 'var(--amber)', lineHeight: 1, marginBottom: '0.5rem' }}>
@@ -106,7 +106,7 @@ export default function AdminDashboard({ users, subscriptions, subscriptionPayme
           },
         ].map(c => (
           <div key={c.label} className="card" style={{ padding: '1.25rem 1.5rem' }}>
-            <p style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>{c.label}</p>
+            <p style={{ fontSize: '0.72rem', fontWeight: 600, letterSpacing: '-0.01em', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>{c.label}</p>
             <p style={{ fontFamily: 'var(--font-display)', fontSize: '1.8rem', lineHeight: 1, marginBottom: '0.35rem' }}>{c.value}</p>
             <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{c.sub}</p>
           </div>

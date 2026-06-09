@@ -15,7 +15,7 @@ const formatPhone = (val) => {
 
 /* ── Micro-components ── */
 const SecLabel = ({ children }) => (
-  <span style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--text-muted)', opacity: 0.8 }}>
+  <span style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '-0.01em', color: 'var(--text-muted)' }}>
     {children}
   </span>
 );
@@ -492,7 +492,7 @@ export default function Calendar({ clients, sessions, addSession, updateSession,
                 <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: '1.1rem', letterSpacing: '-0.01em' }}>
                   {selectedDay && `${selectedDay} de ${monthNames[month]}`}
                 </h3>
-                <p style={{ fontSize: '0.65rem', color: editSession ? 'var(--amber)' : 'var(--text-muted)', marginTop: '0.1rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                <p style={{ fontSize: '0.75rem', color: editSession ? 'var(--amber)' : 'var(--text-muted)', marginTop: '0.1rem', fontWeight: 600, letterSpacing: '-0.01em' }}>
                   {editSession ? 'Editando agendamento' : 'Novo agendamento'}
                 </p>
               </div>

@@ -7,13 +7,11 @@ import { supabase } from '../lib/supabase';
 /* ── Shared styles ── */
 const labelStyle = {
   display: 'block',
-  fontSize: '0.62rem',
-  fontWeight: 700,
-  letterSpacing: '0.12em',
-  textTransform: 'uppercase',
+  fontSize: '0.75rem',
+  fontWeight: 600,
+  letterSpacing: '-0.01em',
   color: 'var(--text-muted)',
   marginBottom: '0.4rem',
-  opacity: 0.85,
 };
 
 const inputBase = {
@@ -24,8 +22,8 @@ const inputBase = {
 
 const SecLabel = ({ children }) => (
   <span style={{
-    fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.18em',
-    textTransform: 'uppercase', color: 'var(--text-muted)', opacity: 0.8,
+    fontSize: '0.75rem', fontWeight: 600, letterSpacing: '-0.01em',
+    color: 'var(--text-muted)',
   }}>
     {children}
   </span>
@@ -294,7 +292,7 @@ export default function Settings() {
             <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
               <div style={{ width: 68, height: 68, borderRadius: '50%', background: 'var(--bg-secondary)', border: '0.5px solid var(--border)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 {avatarUrl ? (
-                  <img src={avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={avatarUrl} alt="Avatar" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
                   <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.6rem', color: 'var(--text-muted)', lineHeight: 1 }}>{avatarInitial}</span>
                 )}

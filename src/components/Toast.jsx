@@ -47,8 +47,8 @@ export function ToastProvider({ children }) {
           <div key={t.id} className={`toast toast-${t.type}${t.exiting ? ' toast-exit' : ''}`}>
             <div className="toast-icon">{iconMap[t.type]}</div>
             <span className="toast-message">{t.message}</span>
-            <button className="toast-close" onClick={() => removeToast(t.id)}>
-              <X size={14} />
+            <button className="toast-close" onClick={() => removeToast(t.id)} aria-label="Fechar notificação">
+              <X size={14} aria-hidden="true" />
             </button>
           </div>
         ))}

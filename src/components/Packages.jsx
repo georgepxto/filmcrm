@@ -442,7 +442,7 @@ export default function Packages({ clients, packages, payments, videos, updatePa
             <div className="modal">
               <div className="modal-header">
                 <h3 style={{ fontWeight: 400 }}>Novo Pacote</h3>
-                <button className="modal-close" onClick={() => setShowCreateModal(false)}><X size={18} /></button>
+                <button className="modal-close" onClick={() => setShowCreateModal(false)} aria-label="Fechar"><X size={18} aria-hidden="true" /></button>
               </div>
               <div className="modal-body">
                 <div className="form-group">

@@ -884,25 +884,26 @@ export default function Clients({
           <div className="modal">
             <div className="modal-header">
               <h3 style={{ fontWeight: 400 }}>{editClientData ? 'Editar Cliente' : 'Novo Cliente'}</h3>
-              <button className="modal-close" onClick={() => setShowClientModal(false)}><X size={18} /></button>
+              <button className="modal-close" onClick={() => setShowClientModal(false)} aria-label="Fechar"><X size={18} aria-hidden="true" /></button>
             </div>
             <div className="modal-body">
               <div className="form-group">
-                <label>Nome</label>
-                <input className="form-control" placeholder="Nome completo" value={clientForm.name} onChange={e => setClientForm({ ...clientForm, name: e.target.value })} />
+                <label htmlFor="cl-name">Nome</label>
+                <input id="cl-name" className="form-control" placeholder="Nome completo" value={clientForm.name} onChange={e => setClientForm({ ...clientForm, name: e.target.value })} />
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label>Contato</label>
+                  <label htmlFor="cl-contact">Contato</label>
                   <input
+                    id="cl-contact"
                     className="form-control" placeholder="(00) 00000-0000"
                     value={clientForm.contact} inputMode="numeric" maxLength={16}
                     onChange={e => setClientForm({ ...clientForm, contact: formatPhone(e.target.value) })}
                   />
                 </div>
                 <div className="form-group">
-                  <label>Email <span style={{ fontWeight: 400, opacity: 0.5, textTransform: 'none', letterSpacing: 0 }}>(opcional)</span></label>
-                  <input className="form-control" type="email" placeholder="email@exemplo.com" value={clientForm.email} onChange={e => setClientForm({ ...clientForm, email: e.target.value })} />
+                  <label htmlFor="cl-email">Email <span style={{ fontWeight: 400, opacity: 0.5, textTransform: 'none', letterSpacing: 0 }}>(opcional)</span></label>
+                  <input id="cl-email" className="form-control" type="email" placeholder="email@exemplo.com" value={clientForm.email} onChange={e => setClientForm({ ...clientForm, email: e.target.value })} />
                 </div>
               </div>
             </div>
@@ -937,7 +938,7 @@ export default function Clients({
                     </p>
                   )}
                 </div>
-                <button className="modal-close" onClick={() => setShowPackageModal(false)}><X size={18} /></button>
+                <button className="modal-close" onClick={() => setShowPackageModal(false)} aria-label="Fechar"><X size={18} aria-hidden="true" /></button>
               </div>
               <div className="modal-body">
                 <div className="form-group">
@@ -1062,7 +1063,7 @@ export default function Clients({
           <div className="modal" style={{ maxWidth: 500 }}>
             <div className="modal-header">
               <h3 style={{ fontWeight: 400 }}>Proposta — {proposalModal.name}</h3>
-              <button className="modal-close" onClick={() => setProposalModal(null)}><X size={18} /></button>
+              <button className="modal-close" onClick={() => setProposalModal(null)} aria-label="Fechar"><X size={18} aria-hidden="true" /></button>
             </div>
             <div className="modal-body">
 
@@ -1170,7 +1171,7 @@ export default function Clients({
           <div className="modal" style={{ maxWidth: 500 }}>
             <div className="modal-header">
               <h3 style={{ fontWeight: 400 }}>{editRefData ? 'Editar Referência' : 'Nova Referência'}</h3>
-              <button className="modal-close" onClick={() => setShowRefModal(false)}><X size={18} /></button>
+              <button className="modal-close" onClick={() => setShowRefModal(false)} aria-label="Fechar"><X size={18} aria-hidden="true" /></button>
             </div>
             <div className="modal-body">
               <div className="form-group">

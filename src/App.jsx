@@ -156,8 +156,8 @@ function AppLayout() {
   return (
     <>
       {!sidebarOpen && (
-        <button className="mobile-toggle" onClick={() => setSidebarOpen(true)}>
-          <ChevronRight size={20} />
+        <button className="mobile-toggle" onClick={() => setSidebarOpen(true)} aria-label="Abrir menu">
+          <ChevronRight size={20} aria-hidden="true" />
         </button>
       )}
 
@@ -204,7 +204,7 @@ function AppLayout() {
                   onClick={() => setSidebarOpen(false)}
                   style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', opacity: 0.75 }}
                 >
-                  <ShieldCheck size={12} style={{ color: 'var(--amber)' }} />
+                  <ShieldCheck size={12} aria-hidden="true" style={{ color: 'var(--amber)' }} />
                   Painel Admin
                 </NavLink>
               )}
@@ -225,8 +225,8 @@ function AppLayout() {
                 <p className="sidebar-user-email">{user.email}</p>
               </div>
             </div>
-            <button className="sidebar-logout" onClick={handleSignOut} title="Sair">
-              <LogOut size={16} />
+            <button className="sidebar-logout" onClick={handleSignOut} aria-label="Sair">
+              <LogOut size={16} aria-hidden="true" />
             </button>
           </div>
         </aside>

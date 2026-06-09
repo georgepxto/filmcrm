@@ -62,8 +62,8 @@ export default function AdminLayout() {
   return (
     <>
       {!sidebarOpen && (
-        <button className="mobile-toggle" onClick={() => setSidebarOpen(true)}>
-          <ChevronRight size={20} />
+        <button className="mobile-toggle" onClick={() => setSidebarOpen(true)} aria-label="Abrir menu">
+          <ChevronRight size={20} aria-hidden="true" />
         </button>
       )}
       {sidebarOpen && (
@@ -107,7 +107,7 @@ export default function AdminLayout() {
                 onClick={() => setSidebarOpen(false)}
                 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
               >
-                <ArrowLeft size={13} style={{ opacity: 0.6 }} />
+                <ArrowLeft size={13} aria-hidden="true" style={{ opacity: 0.6 }} />
                 Voltar ao app
               </NavLink>
             </div>
@@ -127,8 +127,8 @@ export default function AdminLayout() {
                 <p className="sidebar-user-email">{user?.email}</p>
               </div>
             </div>
-            <button className="sidebar-logout" onClick={handleSignOut} title="Sair">
-              <LogOut size={16} />
+            <button className="sidebar-logout" onClick={handleSignOut} aria-label="Sair">
+              <LogOut size={16} aria-hidden="true" />
             </button>
           </div>
         </aside>

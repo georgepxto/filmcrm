@@ -496,7 +496,7 @@ export default function Calendar({ clients, sessions, addSession, updateSession,
                   {editSession ? 'Editando agendamento' : 'Novo agendamento'}
                 </p>
               </div>
-              <button className="modal-close" onClick={() => setShowModal(false)}><X size={18} /></button>
+              <button className="modal-close" onClick={() => setShowModal(false)} aria-label="Fechar"><X size={18} aria-hidden="true" /></button>
             </div>
 
             <div className="modal-body">
@@ -643,29 +643,29 @@ export default function Calendar({ clients, sessions, addSession, updateSession,
 
                 {!form.client_id && (
                   <div className="form-group">
-                    <label>Título do evento</label>
-                    <input type="text" className="form-control" placeholder="Ex: Reunião, Viagem, Feriado..." value={form.title || ''} onChange={e => setForm({ ...form, title: e.target.value })} autoFocus />
+                    <label htmlFor="cal-title">Título do evento</label>
+                    <input id="cal-title" type="text" className="form-control" placeholder="Ex: Reunião, Viagem, Feriado..." value={form.title || ''} onChange={e => setForm({ ...form, title: e.target.value })} autoFocus />
                   </div>
                 )}
 
                 {/* All-day toggle */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.5rem 0', marginBottom: '0.5rem', cursor: 'pointer' }} onClick={() => setForm({ ...form, is_all_day: !form.is_all_day })}>
-                  <div className="toggle-switch" onClick={e => e.stopPropagation()}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.5rem 0', marginBottom: '0.5rem', cursor: 'pointer' }}>
+                  <div className="toggle-switch">
                     <input type="checkbox" checked={form.is_all_day} onChange={e => setForm({ ...form, is_all_day: e.target.checked })} />
                     <span className="toggle-slider" />
                   </div>
                   <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', userSelect: 'none' }}>Evento de dia inteiro</span>
-                </div>
+                </label>
 
                 {!form.is_all_day && (
                   <div className="form-row">
                     <div className="form-group">
-                      <label>Início</label>
-                      <input type="time" className="form-control" value={form.time_start || ''} onChange={handleStartTimeChange} />
+                      <label htmlFor="cal-time-start">Início</label>
+                      <input id="cal-time-start" type="time" className="form-control" value={form.time_start || ''} onChange={handleStartTimeChange} />
                     </div>
                     <div className="form-group">
-                      <label>Fim</label>
-                      <input type="time" className="form-control" value={form.time_end || ''} onChange={e => setForm({ ...form, time_end: e.target.value })} />
+                      <label htmlFor="cal-time-end">Fim</label>
+                      <input id="cal-time-end" type="time" className="form-control" value={form.time_end || ''} onChange={e => setForm({ ...form, time_end: e.target.value })} />
                     </div>
                   </div>
                 )}
@@ -673,23 +673,24 @@ export default function Calendar({ clients, sessions, addSession, updateSession,
                 {form.is_all_day && (
                   <div className="form-row">
                     <div className="form-group">
-                      <label>Data inicial</label>
-                      <input type="date" className="form-control" value={form.date || (selectedDay ? getDateStr(selectedDay) : '')} onChange={e => setForm({ ...form, date: e.target.value })} />
+                      <label htmlFor="cal-date-start">Data inicial</label>
+                      <input id="cal-date-start" type="date" className="form-control" value={form.date || (selectedDay ? getDateStr(selectedDay) : '')} onChange={e => setForm({ ...form, date: e.target.value })} />
                     </div>
                     <div className="form-group">
-                      <label>Data final</label>
-                      <input type="date" className="form-control" value={form.date_end || ''} onChange={e => setForm({ ...form, date_end: e.target.value })} min={form.date || (selectedDay ? getDateStr(selectedDay) : '')} />
+                      <label htmlFor="cal-date-end">Data final</label>
+                      <input id="cal-date-end" type="date" className="form-control" value={form.date_end || ''} onChange={e => setForm({ ...form, date_end: e.target.value })} min={form.date || (selectedDay ? getDateStr(selectedDay) : '')} />
                     </div>
                   </div>
                 )}
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem' }}>
+                    <label htmlFor="cal-service" style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem' }}>
                       Tipo de serviço
                       <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 400 }}>opcional</span>
                     </label>
                     <input
+                      id="cal-service"
                       list="service-suggestions"
                       className="form-control"
                       value={form.service}
@@ -702,8 +703,8 @@ export default function Calendar({ clients, sessions, addSession, updateSession,
                     </datalist>
                   </div>
                   <div className="form-group">
-                    <label>Status</label>
-                    <select className="form-control" value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
+                    <label htmlFor="cal-status">Status</label>
+                    <select id="cal-status" className="form-control" value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
                       <option>Pendente</option>
                       <option>Confirmado</option>
                       <option>Concluído</option>
@@ -762,21 +763,21 @@ export default function Calendar({ clients, sessions, addSession, updateSession,
           <div className="modal">
             <div className="modal-header">
               <h3>Novo Cliente</h3>
-              <button className="modal-close" onClick={() => setShowNewClientModal(false)}><X size={18} /></button>
+              <button className="modal-close" onClick={() => setShowNewClientModal(false)} aria-label="Fechar"><X size={18} aria-hidden="true" /></button>
             </div>
             <div className="modal-body">
               <div className="form-group">
-                <label>Nome</label>
-                <input className="form-control" placeholder="Nome completo" value={newClientForm.name} onChange={e => setNewClientForm({ ...newClientForm, name: e.target.value })} autoFocus />
+                <label htmlFor="cal-nc-name">Nome</label>
+                <input id="cal-nc-name" className="form-control" placeholder="Nome completo" value={newClientForm.name} onChange={e => setNewClientForm({ ...newClientForm, name: e.target.value })} autoFocus />
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label>Contato</label>
-                  <input className="form-control" placeholder="(00) 00000-0000" value={newClientForm.contact} inputMode="numeric" maxLength={16} onChange={e => setNewClientForm({ ...newClientForm, contact: formatPhone(e.target.value) })} />
+                  <label htmlFor="cal-nc-contact">Contato</label>
+                  <input id="cal-nc-contact" className="form-control" placeholder="(00) 00000-0000" value={newClientForm.contact} inputMode="numeric" maxLength={16} onChange={e => setNewClientForm({ ...newClientForm, contact: formatPhone(e.target.value) })} />
                 </div>
                 <div className="form-group">
-                  <label>Email <span style={{ fontWeight: 400, opacity: 0.5, textTransform: 'none', letterSpacing: 0 }}>(opcional)</span></label>
-                  <input className="form-control" type="email" placeholder="email@exemplo.com" value={newClientForm.email} onChange={e => setNewClientForm({ ...newClientForm, email: e.target.value })} />
+                  <label htmlFor="cal-nc-email">Email <span style={{ fontWeight: 400, opacity: 0.5, textTransform: 'none', letterSpacing: 0 }}>(opcional)</span></label>
+                  <input id="cal-nc-email" className="form-control" type="email" placeholder="email@exemplo.com" value={newClientForm.email} onChange={e => setNewClientForm({ ...newClientForm, email: e.target.value })} />
                 </div>
               </div>
             </div>

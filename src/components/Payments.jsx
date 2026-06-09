@@ -472,7 +472,7 @@ export default function Payments({ clients, packages, payments, addPayment, dele
             <div className="modal">
               <div className="modal-header">
                 <h3 style={{ fontWeight: 400 }}>Registrar Pagamento</h3>
-                <button className="modal-close" onClick={() => setShowModal(false)}><X size={18} /></button>
+                <button className="modal-close" onClick={() => setShowModal(false)} aria-label="Fechar"><X size={18} aria-hidden="true" /></button>
               </div>
               <div className="modal-body">
                 <div style={{ background: 'var(--bg-primary)', border: '0.5px solid var(--border)', borderRadius: 6, padding: '0.85rem 1rem', marginBottom: '1.25rem' }}>
@@ -515,12 +515,13 @@ export default function Payments({ clients, packages, payments, addPayment, dele
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label>Data</label>
-                    <input type="date" className="form-control" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} />
+                    <label htmlFor="pay-date">Data</label>
+                    <input id="pay-date" type="date" className="form-control" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} />
                   </div>
                   <div className="form-group">
-                    <label>Valor ({cSym})</label>
+                    <label htmlFor="pay-amount">Valor ({cSym})</label>
                     <input
+                      id="pay-amount"
                       type="number" className="form-control" min="0" max={owed} step="1"
                       value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })}
                       style={{ borderColor: exceedsOwed ? 'var(--danger)' : undefined }}
@@ -534,8 +535,8 @@ export default function Payments({ clients, packages, payments, addPayment, dele
                 </div>
 
                 <div className="form-group">
-                  <label>Observação</label>
-                  <input className="form-control" placeholder="Ex: 2ª parcela" value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} />
+                  <label htmlFor="pay-note">Observação</label>
+                  <input id="pay-note" className="form-control" placeholder="Ex: 2ª parcela" value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} />
                 </div>
               </div>
               <div className="modal-footer">

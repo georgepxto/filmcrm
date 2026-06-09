@@ -580,32 +580,32 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
           <div className="modal">
             <div className="modal-header">
               <h3 style={{ fontWeight: 400 }}>{editVideoData ? 'Editar Vídeo' : 'Novo Vídeo'}</h3>
-              <button className="modal-close" onClick={() => setShowModal(false)}><X size={18} /></button>
+              <button className="modal-close" onClick={() => setShowModal(false)} aria-label="Fechar"><X size={18} aria-hidden="true" /></button>
             </div>
             <div className="modal-body">
               <div className="form-group">
-                <label>Título do Vídeo</label>
-                <input className="form-control" placeholder="Ex: Reel Behind the Scenes" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
+                <label htmlFor="pc-title">Título do Vídeo</label>
+                <input id="pc-title" className="form-control" placeholder="Ex: Reel Behind the Scenes" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label>Cliente</label>
-                  <select className="form-control" value={form.client_id} onChange={e => { const p = packages.filter(x => x.client_id === e.target.value); setForm({ ...form, client_id: e.target.value, package_id: p[0]?.id || '' }); }}>
+                  <label htmlFor="pc-client">Cliente</label>
+                  <select id="pc-client" className="form-control" value={form.client_id} onChange={e => { const p = packages.filter(x => x.client_id === e.target.value); setForm({ ...form, client_id: e.target.value, package_id: p[0]?.id || '' }); }}>
                     <option value="">Selecione um cliente...</option>
                     {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
                 <div className="form-group">
-                  <label>Pacote</label>
-                  <select className="form-control" value={form.package_id} onChange={e => setForm({ ...form, package_id: e.target.value })}>
+                  <label htmlFor="pc-package">Pacote</label>
+                  <select id="pc-package" className="form-control" value={form.package_id} onChange={e => setForm({ ...form, package_id: e.target.value })}>
                     <option value="">Selecione um pacote...</option>
                     {cpf.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
                 </div>
               </div>
               <div className="form-group">
-                <label>Data Prevista</label>
-                <input type="date" className="form-control" value={form.planned_date} onChange={e => setForm({ ...form, planned_date: e.target.value })} />
+                <label htmlFor="pc-date">Data Prevista</label>
+                <input id="pc-date" type="date" className="form-control" value={form.planned_date} onChange={e => setForm({ ...form, planned_date: e.target.value })} />
               </div>
             </div>
             <div className="modal-footer">

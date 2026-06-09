@@ -57,9 +57,9 @@ const OutlineBtn = ({ onClick, children, disabled, type = 'button' }) => (
   </button>
 );
 
-const Field = ({ label, children }) => (
+const Field = ({ label, id, children }) => (
   <div style={{ marginBottom: '1.1rem' }}>
-    <label style={labelStyle}>{label}</label>
+    <label htmlFor={id} style={labelStyle}>{label}</label>
     {children}
   </div>
 );
@@ -312,8 +312,8 @@ export default function Settings() {
 
             {/* Name */}
             <div style={{ flex: 1, minWidth: 0 }}>
-              <Field label="Nome completo">
-                <input type="text" className="form-control" style={inputBase} value={name} onChange={e => setName(e.target.value)} placeholder="Seu nome" />
+              <Field label="Nome completo" id="settings-name">
+                <input id="settings-name" type="text" className="form-control" style={inputBase} value={name} onChange={e => setName(e.target.value)} placeholder="Seu nome" />
               </Field>
             </div>
           </div>
@@ -331,8 +331,8 @@ export default function Settings() {
         <SecLabel>Empresa &amp; Faturamento</SecLabel>
         <form onSubmit={handleUpdateBusinessData} style={{ marginTop: '1.5rem' }}>
           <div className="form-row">
-            <Field label="Nome da produtora / empresa">
-              <input type="text" className="form-control" style={inputBase} value={companyName} onChange={e => setCompanyName(e.target.value)} placeholder="Ex: Alba Effect Films" />
+            <Field label="Nome da produtora / empresa" id="settings-company">
+              <input id="settings-company" type="text" className="form-control" style={inputBase} value={companyName} onChange={e => setCompanyName(e.target.value)} placeholder="Ex: Alba Effect Films" />
             </Field>
 
             <Field label={`Documento (${documentType})`}>
@@ -365,12 +365,12 @@ export default function Settings() {
               </div>
             </Field>
 
-            <Field label="Chave PIX padrão">
-              <input type="text" className="form-control" style={inputBase} value={pixKey} onChange={e => setPixKey(e.target.value)} placeholder="E-mail, CPF, celular ou chave aleatória" />
+            <Field label="Chave PIX padrão" id="settings-pix">
+              <input id="settings-pix" type="text" className="form-control" style={inputBase} value={pixKey} onChange={e => setPixKey(e.target.value)} placeholder="E-mail, CPF, celular ou chave aleatória" />
             </Field>
 
-            <Field label="Moeda padrão">
-              <select className="form-control" style={inputBase} value={currency} onChange={e => setCurrency(e.target.value)}>
+            <Field label="Moeda padrão" id="settings-currency">
+              <select id="settings-currency" className="form-control" style={inputBase} value={currency} onChange={e => setCurrency(e.target.value)}>
                 <option value="BRL">R$ — Real Brasileiro</option>
                 <option value="USD">$ — Dólar Americano</option>
                 <option value="EUR">€ — Euro</option>
@@ -403,11 +403,11 @@ export default function Settings() {
         <SecLabel>Segurança</SecLabel>
         <form onSubmit={handleUpdatePassword} style={{ marginTop: '1.5rem' }}>
           <div className="form-row" style={{ marginBottom: '0.75rem' }}>
-            <Field label="Nova senha">
-              <input type="password" className="form-control" style={inputBase} value={password} onChange={e => setPassword(e.target.value)} placeholder="Nova senha" />
+            <Field label="Nova senha" id="settings-password">
+              <input id="settings-password" type="password" className="form-control" style={inputBase} value={password} onChange={e => setPassword(e.target.value)} placeholder="Nova senha" />
             </Field>
-            <Field label="Confirmar nova senha">
-              <input type="password" className="form-control" style={inputBase} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Repita a nova senha" />
+            <Field label="Confirmar nova senha" id="settings-confirm-password">
+              <input id="settings-confirm-password" type="password" className="form-control" style={inputBase} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Repita a nova senha" />
             </Field>
           </div>
           <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', opacity: 0.7, marginBottom: '1.5rem' }}>

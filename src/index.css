@@ -1892,6 +1892,12 @@ input:checked + .toggle-slider:before {
   .post-mobile-list { display: flex; flex-direction: column; gap: 0.5rem; }
 }
 
+.post-collapse-toggle { cursor: pointer; border: none; font-family: var(--font-body); color: var(--text-muted); }
+.post-collapse-toggle:hover { color: var(--text-primary); }
+.post-collapse-toggle:focus-visible { outline: 2px solid var(--amber); outline-offset: -2px; }
+.post-collapse-toggle .chevron { transition: transform 0.15s ease; flex-shrink: 0; }
+.post-collapse-toggle[aria-expanded="true"] .chevron { transform: rotate(180deg); }
+
 /* ── Packages Page ── */
 .pkg-filters {
   padding: 0.75rem 1rem;

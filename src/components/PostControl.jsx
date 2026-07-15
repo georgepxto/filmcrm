@@ -2,7 +2,7 @@
 import {
   Film, Plus, X, Calendar, CheckSquare, Square, Search,
   Trash2, Edit3, MessageCircle, Clock, ClipboardList, User, CheckCircle, Activity,
-  AlertCircle
+  AlertCircle, ChevronDown
 } from 'lucide-react';
 import { useToast } from './Toast';
 import ConfirmModal from './ConfirmModal';
@@ -47,6 +47,37 @@ const getStatus = (v) => {
   return { label: 'Não iniciado', color: '#ef4444', bg: 'rgba(239,68,68,0.10)' };
 };
 
+const COMPLETED_VISIBLE_DAYS = 7;
+const todayISO = () => new Date().toISOString().slice(0, 10);
+// Concluídos usam actual_date (já existia na tabela, sem uso) como data de conclusão
+const isArchived = (v) => {
+  if (!v.posted) return false;
+  if (!v.actual_date) return true;
+  const days = (Date.now() - new Date(v.actual_date + 'T00:00:00').getTime()) / 86400000;
+  return days >= COMPLETED_VISIBLE_DAYS;
+};
+
+const CompletedToggle = ({ mobile, count, expanded, onToggle }) => (
+  <button
+    type="button"
+    className={mobile ? 'card post-collapse-toggle' : 'post-collapse-toggle'}
+    onClick={onToggle}
+    aria-expanded={expanded}
+    style={{
+      width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: mobile ? '0.85rem 1rem' : '0.6rem 1.25rem',
+      background: mobile ? undefined : 'var(--bg-secondary)',
+      fontSize: mobile ? '0.8rem' : '0.78rem', fontWeight: 600,
+    }}
+  >
+    <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+      <CheckCircle size={14} />
+      Concluídos há mais de {COMPLETED_VISIBLE_DAYS} dias · {count}
+    </span>
+    <ChevronDown size={16} className="chevron" aria-hidden="true" />
+  </button>
+);
+
 export default function PostControl({ clients, videos, packages, addVideo, updateVideo, deleteVideo, pipelineSettings, updatePipelineSettings }) {
   const toast = useToast();
   const [filterClient, setFilterClient] = useState('');
@@ -57,6 +88,7 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
   const [hoveredRow, setHoveredRow] = useState(null);
   const [history, setHistory] = useState([]);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [showCompleted, setShowCompleted] = useState(false);
 
   const getStatusColor = (label) => {
     if (label === 'Postado') return 'var(--success)';
@@ -125,6 +157,11 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
     return list;
   }, [videos, filterClient, searchQuery, clients]);
 
+  const visibleList = filtered.filter(v => !isArchived(v));
+  const archivedList = filtered
+    .filter(v => isArchived(v))
+    .sort((a, b) => (b.actual_date || '').localeCompare(a.actual_date || ''));
+
   // Widget Computations
   const totalVideos = videos.length;
   const doneCount = videos.filter(v => v.posted).length;
@@ -142,11 +179,11 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
     if (!v) return;
     const prevLabel = getStatus(v).label;
     if (v.posted) {
-      await updateVideo(videoId, { edited: false, delivered: false, posted: false });
+      await updateVideo(videoId, { edited: false, delivered: false, posted: false, actual_date: null });
       toast.success('↩ Vídeo reaberto');
       pushHistory(videoId, prevLabel, 'Não iniciado');
     } else {
-      await updateVideo(videoId, { edited: true, delivered: true, posted: true });
+      await updateVideo(videoId, { edited: true, delivered: true, posted: true, actual_date: todayISO() });
       toast.success('✓ Vídeo concluído');
       pushHistory(videoId, prevLabel, 'Postado');
     }
@@ -159,8 +196,8 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
     let upd;
     if (!v.edited) upd = { edited: true, delivered: false, posted: false };
     else if (!v.delivered) upd = { edited: true, delivered: true, posted: false };
-    else if (!v.posted) upd = { edited: true, delivered: true, posted: true };
-    else upd = { edited: false, delivered: false, posted: false };
+    else if (!v.posted) upd = { edited: true, delivered: true, posted: true, actual_date: todayISO() };
+    else upd = { edited: false, delivered: false, posted: false, actual_date: null };
     const result = await updateVideo(videoId, upd);
     if (result) {
       const status = getStatus({ ...v, ...upd });
@@ -172,11 +209,11 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
   const openModal = (video = null) => {
     setEditVideoData(video);
     if (video) {
-      setForm({ client_id: video.client_id, package_id: video.package_id || '', title: video.title, edited: video.edited, delivered: video.delivered, posted: video.posted, planned_date: video.planned_date || '' });
+      setForm({ client_id: video.client_id, package_id: video.package_id || '', title: video.title, edited: video.edited, delivered: video.delivered, posted: video.posted, planned_date: video.planned_date || todayISO() });
     } else {
       const cId = filterClient || '';
       const cp = packages.filter(p => p.client_id === cId);
-      setForm({ ...emptyForm, client_id: cId, package_id: cp[0]?.id || '' });
+      setForm({ ...emptyForm, client_id: cId, package_id: cp[0]?.id || '', planned_date: todayISO() });
     }
     setShowModal(true);
   };
@@ -216,6 +253,142 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
   const colProgress = { width: 140, flexShrink: 0, display: 'flex', justifyContent: 'center' };
   const colDate = { width: 110, flexShrink: 0 };
   const colActions = { width: 60, flexShrink: 0, display: 'flex', justifyContent: 'flex-end' };
+
+  const renderDesktopRow = (v, i, arr) => {
+    const status = getStatus(v);
+    const isDone = v.posted;
+    const overdue = v.planned_date && !v.posted && new Date(v.planned_date + 'T23:59:59') < new Date();
+    const phone = getPhone(v.client_id);
+    const isHovered = hoveredRow === v.id;
+
+    return (
+      <div key={v.id}
+        onMouseEnter={() => setHoveredRow(v.id)}
+        onMouseLeave={() => setHoveredRow(null)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '1rem',
+          padding: '0.65rem 1.25rem',
+          borderBottom: i < arr.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+          background: isHovered ? 'rgba(255,255,255,0.02)' : 'transparent',
+          transition: 'background 0.15s ease',
+          opacity: isDone ? 0.5 : 1,
+        }}>
+
+        {/* Task */}
+        <div style={{ ...colTask, display: 'flex', alignItems: 'center', gap: '0.5rem', overflow: 'hidden' }}>
+          <span style={{
+            fontSize: '0.88rem', fontWeight: 500,
+            color: isDone ? 'var(--text-muted)' : 'var(--text-primary)',
+            textDecoration: isDone ? 'line-through' : 'none',
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
+          }}>
+            {v.title}
+          </span>
+          {overdue && (
+            <span style={{
+              fontSize: '0.6rem', fontWeight: 700, color: 'var(--danger)',
+              padding: '0.1rem 0.35rem', background: 'rgba(239,68,68,0.1)',
+              borderRadius: '4px', flexShrink: 0, whiteSpace: 'nowrap'
+            }}>ATRASADO</span>
+          )}
+        </div>
+
+        {/* Client */}
+        <div style={{ ...colClient, display: 'flex', alignItems: 'center', gap: '0.35rem', overflow: 'hidden' }}>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {getName(v.client_id)}
+          </span>
+          {phone && isHovered && (
+            <a href={`https://wa.me/${phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
+              style={{ color: '#25D366', display: 'flex', flexShrink: 0 }} title="WhatsApp">
+              <MessageCircle size={12} />
+            </a>
+          )}
+        </div>
+
+        {/* Done checkbox */}
+        <div style={{ ...colDone, alignItems: 'center' }}>
+          <button onClick={() => toggleDone(v.id)} style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: isDone ? 'var(--success)' : 'var(--text-muted)',
+            padding: 0, display: 'flex', transition: 'color 0.15s'
+          }}>
+            {isDone ? <CheckSquare size={18} /> : <Square size={18} />}
+          </button>
+        </div>
+
+        {/* Progress badge */}
+        <div style={{ ...colProgress, alignItems: 'center' }}>
+          <button onClick={() => cycleStatus(v.id)} style={{
+            background: status.bg, border: 'none',
+            color: status.color, fontSize: '0.73rem', fontWeight: 600,
+            padding: '0.25rem 0.75rem', borderRadius: '100px',
+            cursor: 'pointer', transition: 'all 0.15s ease',
+            whiteSpace: 'nowrap',
+          }}
+            onMouseEnter={e => e.currentTarget.style.filter = 'brightness(1.2)'}
+            onMouseLeave={e => e.currentTarget.style.filter = 'none'}>
+            {status.label}
+          </button>
+        </div>
+
+        {/* Date */}
+        <div style={{ ...colDate, display: 'flex', alignItems: 'center', fontSize: '0.78rem', color: overdue ? 'var(--danger)' : 'var(--text-muted)' }}>
+          {v.planned_date ? new Date(v.planned_date + 'T12:00').toLocaleDateString('pt-BR') : '—'}
+        </div>
+
+        {/* Actions */}
+        <div className="post-row-actions" style={{ ...colActions, alignItems: 'center', gap: '0.25rem', opacity: isHovered ? 1 : 0, transition: 'opacity 0.15s' }}>
+          <button onClick={() => openModal(v)} title="Editar"
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.25rem', borderRadius: '4px' }}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}>
+            <Edit3 size={13} />
+          </button>
+          <button onClick={() => setDeleteConfirm(v)} title="Excluir"
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.25rem', borderRadius: '4px' }}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--danger)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}>
+            <Trash2 size={13} />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderMobileCard = (v) => {
+    const status = getStatus(v);
+    const overdue = v.planned_date && !v.posted && new Date(v.planned_date + 'T23:59:59') < new Date();
+    return (
+      <div
+        key={v.id}
+        className="card"
+        style={{ padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', opacity: v.posted ? 0.6 : 1 }}
+        onClick={() => cycleStatus(v.id)}
+      >
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '0.88rem', fontWeight: 500, color: v.posted ? 'var(--text-muted)' : 'var(--text-primary)', textDecoration: v.posted ? 'line-through' : 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {v.title}
+            </span>
+            {overdue && <span style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--danger)', padding: '0.1rem 0.35rem', background: 'rgba(239,68,68,0.1)', borderRadius: '4px', flexShrink: 0 }}>ATRASADO</span>}
+          </div>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{getName(v.client_id)}</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+          <span style={{ fontSize: '0.7rem', fontWeight: 600, color: status.color, background: status.bg, padding: '0.25rem 0.6rem', borderRadius: '100px', whiteSpace: 'nowrap' }}>
+            {status.label}
+          </span>
+          <button onClick={e => { e.stopPropagation(); openModal(v); }} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.25rem' }}>
+            <Edit3 size={13} />
+          </button>
+          <button onClick={e => { e.stopPropagation(); setDeleteConfirm(v); }} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.25rem' }}>
+            <Trash2 size={13} />
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="fade-in">
@@ -288,107 +461,21 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
                 </button>
               </div>
             ) : (
-              filtered.map((v, i) => {
-                const status = getStatus(v);
-                const isDone = v.posted;
-                const overdue = v.planned_date && !v.posted && new Date(v.planned_date + 'T23:59:59') < new Date();
-                const phone = getPhone(v.client_id);
-                const isHovered = hoveredRow === v.id;
-
-                return (
-                  <div key={v.id}
-                    onMouseEnter={() => setHoveredRow(v.id)}
-                    onMouseLeave={() => setHoveredRow(null)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '1rem',
-                      padding: '0.65rem 1.25rem',
-                      borderBottom: i < filtered.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
-                      background: isHovered ? 'rgba(255,255,255,0.02)' : 'transparent',
-                      transition: 'background 0.15s ease',
-                      opacity: isDone ? 0.5 : 1,
-                    }}>
-
-                    {/* Task */}
-                    <div style={{ ...colTask, display: 'flex', alignItems: 'center', gap: '0.5rem', overflow: 'hidden' }}>
-                      <span style={{
-                        fontSize: '0.88rem', fontWeight: 500,
-                        color: isDone ? 'var(--text-muted)' : 'var(--text-primary)',
-                        textDecoration: isDone ? 'line-through' : 'none',
-                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
-                      }}>
-                        {v.title}
-                      </span>
-                      {overdue && (
-                        <span style={{
-                          fontSize: '0.6rem', fontWeight: 700, color: 'var(--danger)',
-                          padding: '0.1rem 0.35rem', background: 'rgba(239,68,68,0.1)',
-                          borderRadius: '4px', flexShrink: 0, whiteSpace: 'nowrap'
-                        }}>ATRASADO</span>
-                      )}
-                    </div>
-
-                    {/* Client */}
-                    <div style={{ ...colClient, display: 'flex', alignItems: 'center', gap: '0.35rem', overflow: 'hidden' }}>
-                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {getName(v.client_id)}
-                      </span>
-                      {phone && isHovered && (
-                        <a href={`https://wa.me/${phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
-                          style={{ color: '#25D366', display: 'flex', flexShrink: 0 }} title="WhatsApp">
-                          <MessageCircle size={12} />
-                        </a>
-                      )}
-                    </div>
-
-                    {/* Done checkbox */}
-                    <div style={{ ...colDone, alignItems: 'center' }}>
-                      <button onClick={() => toggleDone(v.id)} style={{
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        color: isDone ? 'var(--success)' : 'var(--text-muted)',
-                        padding: 0, display: 'flex', transition: 'color 0.15s'
-                      }}>
-                        {isDone ? <CheckSquare size={18} /> : <Square size={18} />}
-                      </button>
-                    </div>
-
-                    {/* Progress badge */}
-                    <div style={{ ...colProgress, alignItems: 'center' }}>
-                      <button onClick={() => cycleStatus(v.id)} style={{
-                        background: status.bg, border: 'none',
-                        color: status.color, fontSize: '0.73rem', fontWeight: 600,
-                        padding: '0.25rem 0.75rem', borderRadius: '100px',
-                        cursor: 'pointer', transition: 'all 0.15s ease',
-                        whiteSpace: 'nowrap',
-                      }}
-                        onMouseEnter={e => e.currentTarget.style.filter = 'brightness(1.2)'}
-                        onMouseLeave={e => e.currentTarget.style.filter = 'none'}>
-                        {status.label}
-                      </button>
-                    </div>
-
-                    {/* Date */}
-                    <div style={{ ...colDate, display: 'flex', alignItems: 'center', fontSize: '0.78rem', color: overdue ? 'var(--danger)' : 'var(--text-muted)' }}>
-                      {v.planned_date ? new Date(v.planned_date + 'T12:00').toLocaleDateString('pt-BR') : '—'}
-                    </div>
-
-                    {/* Actions */}
-                    <div className="post-row-actions" style={{ ...colActions, alignItems: 'center', gap: '0.25rem', opacity: isHovered ? 1 : 0, transition: 'opacity 0.15s' }}>
-                      <button onClick={() => openModal(v)} title="Editar"
-                        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.25rem', borderRadius: '4px' }}
-                        onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-                        onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}>
-                        <Edit3 size={13} />
-                      </button>
-                      <button onClick={() => setDeleteConfirm(v)} title="Excluir"
-                        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.25rem', borderRadius: '4px' }}
-                        onMouseEnter={e => e.currentTarget.style.color = 'var(--danger)'}
-                        onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}>
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
+              <>
+                {visibleList.length === 0 ? (
+                  <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                    Nenhum vídeo ativo. Veja os concluídos abaixo.
                   </div>
-                );
-              })
+                ) : (
+                  visibleList.map(renderDesktopRow)
+                )}
+                {archivedList.length > 0 && (
+                  <div style={{ borderTop: '1px solid var(--border)' }}>
+                    <CompletedToggle count={archivedList.length} expanded={showCompleted} onToggle={() => setShowCompleted(s => !s)} />
+                    {showCompleted && archivedList.map(renderDesktopRow)}
+                  </div>
+                )}
+              </>
             )}
 
             {/* Footer count */}
@@ -416,39 +503,15 @@ export default function PostControl({ clients, videos, packages, addVideo, updat
                 </button>
               </div>
             ) : (
-              filtered.map(v => {
-                const status = getStatus(v);
-                const overdue = v.planned_date && !v.posted && new Date(v.planned_date + 'T23:59:59') < new Date();
-                return (
-                  <div
-                    key={v.id}
-                    className="card"
-                    style={{ padding: '0.85rem 1rem', display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', opacity: v.posted ? 0.6 : 1 }}
-                    onClick={() => cycleStatus(v.id)}
-                  >
-                    <div style={{ flex: 1, overflow: 'hidden' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ fontSize: '0.88rem', fontWeight: 500, color: v.posted ? 'var(--text-muted)' : 'var(--text-primary)', textDecoration: v.posted ? 'line-through' : 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {v.title}
-                        </span>
-                        {overdue && <span style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--danger)', padding: '0.1rem 0.35rem', background: 'rgba(239,68,68,0.1)', borderRadius: '4px', flexShrink: 0 }}>ATRASADO</span>}
-                      </div>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{getName(v.client_id)}</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
-                      <span style={{ fontSize: '0.7rem', fontWeight: 600, color: status.color, background: status.bg, padding: '0.25rem 0.6rem', borderRadius: '100px', whiteSpace: 'nowrap' }}>
-                        {status.label}
-                      </span>
-                      <button onClick={e => { e.stopPropagation(); openModal(v); }} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.25rem' }}>
-                        <Edit3 size={13} />
-                      </button>
-                      <button onClick={e => { e.stopPropagation(); setDeleteConfirm(v); }} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.25rem' }}>
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })
+              <>
+                {visibleList.map(renderMobileCard)}
+                {archivedList.length > 0 && (
+                  <>
+                    <CompletedToggle mobile count={archivedList.length} expanded={showCompleted} onToggle={() => setShowCompleted(s => !s)} />
+                    {showCompleted && archivedList.map(renderMobileCard)}
+                  </>
+                )}
+              </>
             )}
           </div>
         </div>

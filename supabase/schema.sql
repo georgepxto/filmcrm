@@ -56,7 +56,7 @@ create table if not exists public.videos (
   delivered boolean default false,
   posted boolean default false,
   planned_date date,
-  actual_date date,
+  actual_date date, -- data de conclusão (setada quando posted=true), usada p/ arquivar concluídos após 7 dias
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 

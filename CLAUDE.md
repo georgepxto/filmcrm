@@ -85,8 +85,3 @@ Tema dark cinematográfico com acento âmbar (`--amber: #d4870a`). Fontes: DM Se
 - Sem `border-left` colorido como accent — usar border tint + background tint
 - `focus-visible` com `outline: 2px solid var(--amber)` em todos os elementos interativos
 
----
-
-## Migration Pendente
-
-Executar `supabase/migration_business_profile.sql` no SQL Editor para: adicionar colunas empresa em `user_profiles`, migrar de `user_metadata`, restringir MIME no bucket `avatars`.
